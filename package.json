@@ -1,0 +1,21 @@
+{
+    "name": "smsflare",
+    "version": "0.1.0",
+    "description": "Distributed SMS Gateway Platform with Cloudflare Workers",
+    "main": "src/backend/index.js",
+    "type": "module",
+    "scripts": {
+        "dev": "wrangler dev --local",
+        "deploy": "wrangler deploy",
+        "migrations:create": "wrangler migrations create",
+        "migrations:apply": "wrangler d1 migrations apply smsflare",
+        "migrations:status": "wrangler d1 migrations status smsflare"
+    },
+    "dependencies": {
+        "hono": "^4.0.0",
+        "wrangler": "^3.50.0"
+    },
+    "devDependencies": {
+        "@cloudflare/workers-types": "^4.20260511.1"
+    }
+}

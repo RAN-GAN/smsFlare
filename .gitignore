@@ -1,0 +1,46 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Testing
+coverage/
+
+# Production
+dist/
+build/
+
+# Env
+.env
+.env.local
+.env.production.local
+.env.development.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-project
+*.sublime-workspace
+
+# Wrangler
+.wrangler/
+dist/
+
+# Next.js
+dashboard/.next/
+dashboard/out/
+
+# SQLite
+*.db
+*.sqlite

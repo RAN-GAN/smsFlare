@@ -1,0 +1,47 @@
+name = "smsflare"
+main = "src/backend/index.js"
+compatibility_date = "2024-05-10"
+compatibility_flags = ["nodejs_compat"]
+
+# Environment configuration
+[env.production]
+name = "smsflare-prod"
+
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "smsflare"
+database_id = "2440b458-df6b-441c-be64-5de4decc6ca4"
+
+[env.staging]
+name = "smsflare-staging"
+
+[[env.staging.d1_databases]]
+binding = "DB"
+database_name = "smsflare"
+database_id = "2440b458-df6b-441c-be64-5de4decc6ca4"
+
+# D1 Database binding
+[[d1_databases]]
+binding = "DB"
+database_name = "smsflare"
+database_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+
+# Environment variables
+[env.production.vars]
+API_BASE_URL = "https://api.smsflare.com"
+DASHBOARD_URL = "https://smsflare.com"
+POLLING_INTERVAL = "30"
+DEVICE_HEARTBEAT_INTERVAL = "600"
+
+# NOTE: Set JWT_SECRET secret before deploying:
+# wrangler secret put JWT_SECRET --env production
+
+[env.staging.vars]
+API_BASE_URL = "https://staging-api.smsflare.com"
+DASHBOARD_URL = "https://staging.smsflare.com"
+POLLING_INTERVAL = "30"
+DEVICE_HEARTBEAT_INTERVAL = "600"
+
+# NOTE: Set JWT_SECRET secret before deploying:
+# wrangler secret put JWT_SECRET --env staging
+

@@ -11,6 +11,19 @@ const app = new Hono();
 app.use(logger());
 app.use(cors());
 
+// Warn loudly on every request if JWT_SECRET is not configured
+app.use('*', async (c, next) => {
+  if (!c.env.JWT_SECRET) {
+    console.warn(
+      '[SMS Flare] WARNING: JWT_SECRET is not set. ' +
+      'The server is using an insecure default key. ' +
+      'For local dev, add JWT_SECRET to .dev.vars. ' +
+      'For production, run: wrangler secret put JWT_SECRET --env production'
+    );
+  }
+  await next();
+});
+
 // Global error handler
 app.onError((err, c) => {
   console.error('Error:', err);
@@ -20,38 +33,52 @@ app.onError((err, c) => {
   );
 });
 
-// Health check
+// Health check — includes setup diagnostics useful for self-hosters
 app.get('/health', (c) => {
-  return c.json({ status: 'ok', timestamp: now() });
+  const jwtConfigured = !!c.env.JWT_SECRET;
+  if (!jwtConfigured) {
+    console.warn('[SMS Flare] /health called but JWT_SECRET is not set.');
+  }
+  return c.json({
+    status: 'ok',
+    timestamp: now(),
+    jwt_configured: jwtConfigured,
+  });
 });
 
 // ==================== AUTH ROUTES ====================
 
-app.post('/auth/register', async (c) => {
+// Returns whether the instance has been configured with an admin account.
+// Frontend uses this to redirect first-time visitors to the setup page.
+app.get('/auth/setup', async (c) => {
+  try {
+    const db = c.env.DB;
+    const row = await db.prepare('SELECT COUNT(*) as count FROM users').first();
+    return c.json({ configured: row.count > 0 });
+  } catch (e) {
+    return c.json({ configured: false });
+  }
+});
+
+// First-run only — creates the admin account. Returns 403 after first use.
+app.post('/auth/setup', async (c) => {
   try {
     const { email, password } = await c.req.json();
     const db = c.env.DB;
 
+    const row = await db.prepare('SELECT COUNT(*) as count FROM users').first();
+    if (row.count > 0) {
+      return c.json({ error: 'Instance is already configured. Use login instead.' }, 403);
+    }
+
     if (!email || !password) {
       return c.json({ error: 'Email and password required' }, 400);
     }
-
     if (!isValidEmail(email)) {
       return c.json({ error: 'Invalid email format' }, 400);
     }
-
-    if (password.length < 6) {
-      return c.json({ error: 'Password must be at least 6 characters' }, 400);
-    }
-
-    // Check if user exists
-    const existing = await db
-      .prepare('SELECT id FROM users WHERE email = ?')
-      .bind(email)
-      .first();
-
-    if (existing) {
-      return c.json({ error: 'User already exists' }, 409);
+    if (password.length < 8) {
+      return c.json({ error: 'Password must be at least 8 characters' }, 400);
     }
 
     const userId = generateId();
@@ -59,29 +86,17 @@ app.post('/auth/register', async (c) => {
     const timestamp = now();
 
     await db
-      .prepare(
-        'INSERT INTO users (id, email, password_hash, created_at, updated_at) VALUES (?, ?, ?, ?, ?)'
-      )
+      .prepare('INSERT INTO users (id, email, password_hash, created_at, updated_at) VALUES (?, ?, ?, ?, ?)')
       .bind(userId, email, passwordHash, timestamp, timestamp)
       .run();
 
     const jwtSecret = c.env.JWT_SECRET || 'dev-secret-key';
-    const token = await signJWT(
-      { sub: userId, email, type: 'user' },
-      jwtSecret,
-      86400 // 24 hours
-    );
+    const token = await signJWT({ sub: userId, email, type: 'user' }, jwtSecret, 86400);
 
-    return c.json(
-      {
-        token,
-        user: { id: userId, email, created_at: timestamp, updated_at: timestamp },
-      },
-      201
-    );
+    return c.json({ token, user: { id: userId, email } }, 201);
   } catch (e) {
-    console.error('Register error:', e);
-    return c.json({ error: 'Registration failed' }, 500);
+    console.error('Setup error:', e);
+    return c.json({ error: 'Setup failed' }, 500);
   }
 });
 
@@ -125,6 +140,43 @@ app.post('/auth/login', async (c) => {
   }
 });
 
+app.put('/auth/password', verifyUserToken, async (c) => {
+  try {
+    const userId = c.get('user_id');
+    const { current_password, new_password } = await c.req.json();
+    const db = c.env.DB;
+
+    if (!current_password || !new_password) {
+      return c.json({ error: 'current_password and new_password required' }, 400);
+    }
+    if (new_password.length < 8) {
+      return c.json({ error: 'New password must be at least 8 characters' }, 400);
+    }
+
+    const user = await db
+      .prepare('SELECT password_hash FROM users WHERE id = ?')
+      .bind(userId)
+      .first();
+
+    const valid = await verifyPassword(current_password, user.password_hash);
+    if (!valid) {
+      return c.json({ error: 'Current password is incorrect' }, 401);
+    }
+
+    const newHash = await hashPassword(new_password);
+    const timestamp = now();
+    await db
+      .prepare('UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?')
+      .bind(newHash, timestamp, userId)
+      .run();
+
+    return c.json({ success: true });
+  } catch (e) {
+    console.error('Change password error:', e);
+    return c.json({ error: 'Failed to change password' }, 500);
+  }
+});
+
 app.post('/auth/device-pair', verifyUserToken, async (c) => {
   try {
     const userId = c.get('user_id');
@@ -156,7 +208,7 @@ app.post('/auth/device-pair', verifyUserToken, async (c) => {
 
 app.post('/api/device/register', async (c) => {
   try {
-    const { pairing_token, device_model, android_version, phone_number, battery_level, sim_info } = await c.req.json();
+    const { pairing_token, device_model, android_version, phone_number = null, battery_level = null, sim_info = null } = await c.req.json();
     const db = c.env.DB;
 
     if (!pairing_token) {
@@ -523,6 +575,85 @@ app.get('/auth/api-keys', verifyUserToken, async (c) => {
   } catch (e) {
     console.error('Get API keys error:', e);
     return c.json({ error: 'Failed to get API keys' }, 500);
+  }
+});
+
+// ==================== DEVICE MANAGEMENT ROUTES ====================
+
+app.delete('/api/devices/:id', verifyUserToken, async (c) => {
+  try {
+    const userId = c.get('user_id');
+    const deviceId = c.req.param('id');
+    const db = c.env.DB;
+
+    // Verify device belongs to this user
+    const device = await db
+      .prepare('SELECT id FROM devices WHERE id = ? AND user_id = ?')
+      .bind(deviceId, userId)
+      .first();
+
+    if (!device) {
+      return c.json({ error: 'Device not found' }, 404);
+    }
+
+    await db.prepare('DELETE FROM device_heartbeats WHERE device_id = ?').bind(deviceId).run();
+    await db.prepare('DELETE FROM devices WHERE id = ?').bind(deviceId).run();
+
+    return c.json({ success: true });
+  } catch (e) {
+    console.error('Delete device error:', e);
+    return c.json({ error: 'Failed to delete device' }, 500);
+  }
+});
+
+// ==================== ACCOUNT MANAGEMENT ROUTES ====================
+
+app.delete('/api/jobs', verifyUserToken, async (c) => {
+  try {
+    const userId = c.get('user_id');
+    const db = c.env.DB;
+
+    // Delete logs first (foreign key dependency on sms_jobs)
+    await db
+      .prepare(`DELETE FROM sms_logs WHERE job_id IN (SELECT id FROM sms_jobs WHERE user_id = ?)`)
+      .bind(userId)
+      .run();
+
+    await db
+      .prepare(`DELETE FROM sms_jobs WHERE user_id = ?`)
+      .bind(userId)
+      .run();
+
+    return c.json({ success: true });
+  } catch (e) {
+    console.error('Clear jobs error:', e);
+    return c.json({ error: 'Failed to clear SMS history' }, 500);
+  }
+});
+
+app.delete('/auth/account', verifyUserToken, async (c) => {
+  try {
+    const userId = c.get('user_id');
+    const db = c.env.DB;
+
+    // Delete in dependency order
+    await db
+      .prepare(`DELETE FROM sms_logs WHERE job_id IN (SELECT id FROM sms_jobs WHERE user_id = ?)`)
+      .bind(userId)
+      .run();
+    await db.prepare(`DELETE FROM sms_jobs WHERE user_id = ?`).bind(userId).run();
+    await db
+      .prepare(`DELETE FROM device_heartbeats WHERE device_id IN (SELECT id FROM devices WHERE user_id = ?)`)
+      .bind(userId)
+      .run();
+    await db.prepare(`DELETE FROM devices WHERE user_id = ?`).bind(userId).run();
+    await db.prepare(`DELETE FROM api_keys WHERE user_id = ?`).bind(userId).run();
+    await db.prepare(`DELETE FROM users WHERE id = ?`).bind(userId).run();
+
+    return c.json({ success: true });
+  } catch (e) {
+    console.error('Delete account error:', e);
+    return c.json({ error: 'Failed to delete account' }, 500);
   }
 });
 

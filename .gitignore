@@ -35,6 +35,7 @@ Thumbs.db
 
 # Wrangler
 .wrangler/
+.dev.vars
 dist/
 
 # Next.js
@@ -44,3 +45,4 @@ dashboard/out/
 # SQLite
 *.db
 *.sqlite
+/android-app/.gradle/*

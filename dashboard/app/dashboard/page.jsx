@@ -1,39 +1,53 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import useAuthStore from '../store/auth.js';
-import { smsApi } from '../lib/api';
+import { smsApi, deviceMgmtApi } from '../lib/api';
 import Cookies from 'js-cookie';
 
 export default function DashboardPage() {
   const [jobs, setJobs] = useState([]);
   const [devices, setDevices] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [backendStatus, setBackendStatus] = useState(null); // null | 'online' | 'offline'
   const router = useRouter();
   const logout = useAuthStore((state) => state.logout);
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       const [jobsData, devicesData] = await Promise.all([smsApi.getJobs(10, 0), smsApi.getDevices()]);
-
       setJobs(jobsData.jobs || []);
       setDevices(devicesData.devices || []);
+      setBackendStatus('online');
     } catch (err) {
       console.error('Failed to load data:', err);
+      setBackendStatus('offline');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadData();
+    const interval = setInterval(loadData, 3000);
+    return () => clearInterval(interval);
+  }, [loadData]);
 
   const handleLogout = () => {
     logout();
     router.push('/auth/login');
+  };
+
+  const handleDeregisterDevice = async (deviceId) => {
+    if (!confirm('Remove this device? It will stop receiving SMS jobs.')) return;
+    try {
+      await deviceMgmtApi.deregister(deviceId);
+      setDevices((prev) => prev.filter((d) => d.id !== deviceId));
+    } catch (err) {
+      console.error('Failed to remove device:', err);
+    }
   };
 
   const getStatusColor = (status) => {
@@ -62,7 +76,21 @@ export default function DashboardPage() {
       {/* Header */}
       <header className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-900">SMS Flare Dashboard</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-gray-900">SMS Flare Dashboard</h1>
+            {backendStatus && (
+              <span className={`flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full ${
+                backendStatus === 'online'
+                  ? 'bg-green-100 text-green-700'
+                  : 'bg-red-100 text-red-700'
+              }`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${
+                  backendStatus === 'online' ? 'bg-green-500' : 'bg-red-500'
+                }`} />
+                {backendStatus === 'online' ? 'Backend online' : 'Backend unreachable'}
+              </span>
+            )}
+          </div>
           <div className="flex gap-4">
             <Link href="/send" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
               Send SMS
@@ -98,7 +126,7 @@ export default function DashboardPage() {
                       {device.online ? 'Online' : 'Offline'}
                     </span>
                   </div>
-                  <div className="space-y-2 text-sm">
+                  <div className="space-y-2 text-sm mb-4">
                     <p className="text-gray-600">
                       <strong>Android:</strong> {device.android_version || 'N/A'}
                     </p>
@@ -109,6 +137,12 @@ export default function DashboardPage() {
                       <strong>Phone:</strong> {device.phone_number || 'N/A'}
                     </p>
                   </div>
+                  <button
+                    onClick={() => handleDeregisterDevice(device.id)}
+                    className="w-full text-xs text-red-500 hover:text-red-700 hover:bg-red-50 border border-red-200 rounded py-1.5 transition duration-150"
+                  >
+                    Remove device
+                  </button>
                 </div>
               ))}
             </div>
@@ -153,7 +187,7 @@ export default function DashboardPage() {
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600">{formatTime(job.created_at)}</td>
                       <td className="px-6 py-4 text-sm">
-                        <Link href={`/jobs/${job.id}`} className="text-blue-600 hover:text-blue-700 font-semibold">
+                        <Link href={`/jobs/?id=${job.id}`} className="text-blue-600 hover:text-blue-700 font-semibold">
                           View
                         </Link>
                       </td>

@@ -45,7 +45,7 @@ export default function SendPage() {
 
       // Redirect to job details after a short delay
       setTimeout(() => {
-        router.push(`/jobs/${response.job_id}`);
+        router.push(`/jobs/?id=${response.job_id}`);
       }, 1500);
     } catch (err) {
       setError(err.message);

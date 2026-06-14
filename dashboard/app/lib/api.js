@@ -31,6 +31,14 @@ export async function apiCall(endpoint, options = {}) {
     return data;
 }
 
+// Device management
+export const deviceMgmtApi = {
+    deregister: (deviceId) =>
+        apiCall(`/api/devices/${deviceId}`, {
+            method: 'DELETE',
+        }),
+};
+
 // SMS API functions
 export const smsApi = {
     sendSms: (to, message) =>
@@ -69,10 +77,28 @@ export const apiKeyApi = {
         apiCall('/auth/api-keys'),
 };
 
-// Device pairing
+// Device pairing + account management
 export const authApi = {
     generatePairingToken: () =>
         apiCall('/auth/device-pair', {
             method: 'POST',
+        }),
+
+    deleteAccount: () =>
+        apiCall('/auth/account', {
+            method: 'DELETE',
+        }),
+
+    changePassword: (current_password, new_password) =>
+        apiCall('/auth/password', {
+            method: 'PUT',
+            body: JSON.stringify({ current_password, new_password }),
+        }),
+};
+
+export const dataApi = {
+    clearSmsHistory: () =>
+        apiCall('/api/jobs', {
+            method: 'DELETE',
         }),
 };

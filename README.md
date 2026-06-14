@@ -1,218 +1,132 @@
-# SMS Flare - Distributed SMS Gateway Platform
+# SMS Flare
 
-A cloud-based SMS gateway platform built with Cloudflare Workers, D1 Database, and Next.js.
+A self-hosted SMS gateway that routes messages through Android phones with SIM cards. You own the infrastructure — no per-message fees, no third-party carrier APIs.
 
-## Overview
+## How it works
 
-SMS Flare allows you to send SMS messages through Android devices with SIM cards, managed via a web dashboard. The system consists of:
+1. Deploy the backend to Cloudflare Workers
+2. Register your Android phones via the web dashboard
+3. Send SMS via the dashboard UI or a simple REST API
+4. The Android app picks up jobs every 30 seconds and sends them via the device's SIM card
 
-- **Backend**: Cloudflare Workers + Hono (REST API)
+## Stack
+
+- **Backend**: Cloudflare Workers + Hono
 - **Database**: Cloudflare D1 (SQLite)
-- **Dashboard**: Next.js with Tailwind CSS
-- **Mobile**: Capacitor wrapper for responsive web-to-mobile
-- **Android Client**: Native polling + SMS sending app (separate project)
+- **Dashboard**: Next.js 14 + Tailwind CSS
+- **Android client**: Native polling app (separate project)
 
-## Quick Start
+---
+
+## Quick start
 
 ### Prerequisites
 
 - Node.js 18+
-- Wrangler CLI (`npm i -g wrangler`)
-- Cloudflare account
+- A [Cloudflare account](https://dash.cloudflare.com/sign-up) (free tier works)
+- Wrangler CLI — installed automatically by the setup script if missing
 
-### Installation
-
-#### 1. Backend Setup
+### 1. Run the setup script
 
 ```bash
-# Install dependencies
-npm install
-
-# Set up wrangler
-wrangler login
-
-# Create D1 database
-wrangler d1 create smsflare
-
-# Run migrations
-wrangler d1 migrations apply smsflare --env production
-
-# Update wrangler.toml with your database ID
+git clone <your-repo-url>
+cd smsflare
+./setup.sh
 ```
 
-#### 2. Dashboard Setup
+This does everything in one pass:
+- Logs you into Cloudflare
+- Creates the D1 database and updates `wrangler.toml`
+- Runs all migrations
+- Generates a random `JWT_SECRET` and saves it to `.dev.vars`
+- Installs dashboard dependencies and creates `dashboard/.env.local`
+
+### 2. Start development servers
 
 ```bash
-cd dashboard
-
-# Install dependencies
-npm install
-
-# Create .env.local
-echo "NEXT_PUBLIC_API_URL=http://localhost:8787" > .env.local
-```
-
-### Development
-
-#### Terminal 1: Start Backend
-
-```bash
+# Terminal 1 — backend (http://localhost:8787)
 npm run dev
+
+# Terminal 2 — dashboard (http://localhost:3000)
+cd dashboard && npm run dev
 ```
 
-Backend runs at `http://localhost:8787`
+### 3. Create an account and pair a device
 
-#### Terminal 2: Start Dashboard
+1. Open `http://localhost:3000` and sign up
+2. Go to **Settings → Generate Pairing Token**
+3. Scan the QR code with the Android app — it encodes the token and API URL together so you don't need to type anything
 
-```bash
-cd dashboard
-npm run dev
-```
+---
 
-Dashboard runs at `http://localhost:3000`
+## API
 
-## Project Structure
+All requests use `Authorization: Bearer <token>`. Three token types are accepted:
 
-```
-smsflare/
-├── src/backend/          # Hono API server
-│   ├── index.js          # Main app entry
-│   ├── middleware/       # Auth middleware
-│   └── utils/            # JWT, DB helpers
-├── migrations/           # D1 database migrations
-├── dashboard/            # Next.js web dashboard
-│   ├── app/
-│   │   ├── auth/         # Login, signup pages
-│   │   ├── dashboard/    # Main dashboard
-│   │   ├── send/         # SMS composer
-│   │   ├── jobs/         # Job details
-│   │   ├── settings/     # API keys, pairing tokens
-│   │   └── store/        # Zustand auth store
-│   └── lib/              # API client
-├── wrangler.toml         # Cloudflare config
-└── package.json          # Dependencies
-```
+| Type | How to get it | Used for |
+|---|---|---|
+| User JWT | Login via dashboard or `POST /auth/login` | Dashboard sessions (24h expiry) |
+| API key | Settings → Create API Key | Programmatic access |
+| Device token | Returned by `POST /api/device/register` | Android app only |
 
-## API Endpoints
-
-### Authentication
-
-- `POST /auth/register` - Create account
-- `POST /auth/login` - Login
-- `POST /auth/device-pair` - Generate device pairing token
-- `POST /auth/api-keys` - Create API key
-- `GET /auth/api-keys` - List API keys
-
-### SMS
-
-- `POST /api/sms/send` - Send SMS (requires user JWT or API key)
-- `GET /api/jobs` - List user's SMS jobs
-- `GET /api/jobs/:id` - Get job details
-
-### Devices
-
-- `POST /api/device/register` - Register device
-- `GET /api/device/jobs` - Get pending jobs (device polling)
-- `POST /api/device/jobs/:id/status` - Report delivery status
-- `POST /api/device/heartbeat` - Send heartbeat
-- `GET /api/devices` - List user's devices
-
-## Usage
-
-### 1. Create Account
-
-Visit `http://localhost:3000` and sign up
-
-### 2. Generate Pairing Token
-
-- Go to Settings
-- Click "Generate Pairing Token"
-- Copy the token
-
-### 3. Register Android Device
-
-Install the Android app on a device with a SIM card and enter the pairing token to register.
-
-### 4. Send SMS
-
-- Go to Dashboard
-- Click "Send SMS"
-- Enter recipient phone number and message
-- Device will receive job and send SMS
-
-### 5. Use API
-
-Generate an API key in Settings and send SMS programmatically:
+### Send an SMS
 
 ```bash
 curl -X POST http://localhost:8787/api/sms/send \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{
-    "to": "+1234567890",
-    "message": "Hello from SMS Flare!"
-  }'
+  -d '{"to": "+1234567890", "message": "Hello from SMS Flare!"}'
 ```
 
-## Database Schema
-
-### Users
-
-```sql
-CREATE TABLE users (
-  id TEXT PRIMARY KEY,
-  email TEXT UNIQUE NOT NULL,
-  password_hash TEXT NOT NULL,
-  created_at INTEGER,
-  updated_at INTEGER
-);
+Response:
+```json
+{
+  "job_id": "abc123def456",
+  "status": "assigned",
+  "assigned_device": "device_id_here"
+}
 ```
 
-### Devices
+Job status lifecycle: `pending` → `assigned` → `sent` → `delivered` (or `failed`)
 
-```sql
-CREATE TABLE devices (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL,
-  device_token TEXT UNIQUE NOT NULL,
-  device_model TEXT,
-  android_version TEXT,
-  phone_number TEXT,
-  battery_level INTEGER,
-  sim_info TEXT,
-  online INTEGER,
-  last_heartbeat INTEGER,
-  created_at INTEGER,
-  updated_at INTEGER,
-  FOREIGN KEY (user_id) REFERENCES users(id)
-);
-```
+### All endpoints
 
-### SMS Jobs
+**Auth**
+- `POST /auth/register` — create account
+- `POST /auth/login` — login, returns JWT
+- `POST /auth/device-pair` — generate device pairing token
+- `POST /auth/api-keys` — create API key
+- `GET  /auth/api-keys` — list API keys
 
-```sql
-CREATE TABLE sms_jobs (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL,
-  device_id TEXT,
-  recipient TEXT NOT NULL,
-  message TEXT NOT NULL,
-  status TEXT, -- pending, assigned, sent, delivered, failed
-  created_at INTEGER,
-  assigned_at INTEGER,
-  sent_at INTEGER,
-  delivered_at INTEGER,
-  updated_at INTEGER,
-  FOREIGN KEY (user_id) REFERENCES users(id),
-  FOREIGN KEY (device_id) REFERENCES devices(id)
-);
-```
+**SMS**
+- `POST /api/sms/send` — send SMS (user JWT or API key)
+- `GET  /api/jobs` — list jobs (paginated: `?limit=20&offset=0`)
+- `GET  /api/jobs/:id` — job details + delivery timeline
+
+**Devices**
+- `GET  /api/devices` — list registered devices
+- `POST /api/device/register` — register device with pairing token
+- `GET  /api/device/jobs` — poll for pending job (Android app)
+- `POST /api/device/jobs/:id/status` — report delivery status (Android app)
+- `POST /api/device/heartbeat` — device heartbeat (Android app)
+
+**System**
+- `GET  /health` — status check, includes `jwt_configured` flag
+
+---
 
 ## Deployment
 
 ### Backend (Cloudflare Workers)
 
 ```bash
+# Set the JWT secret
+wrangler secret put JWT_SECRET --env production
+
+# Run migrations against the production database
+wrangler d1 migrations apply smsflare --env production
+
+# Deploy
 npm run deploy
 ```
 
@@ -220,90 +134,67 @@ npm run deploy
 
 ```bash
 cd dashboard
+echo "NEXT_PUBLIC_API_URL=https://your-worker.workers.dev" > .env.local
 npm run build
-wrangler pages deploy out/
+wrangler pages deploy .next/
 ```
 
-## Environment Variables
+---
 
-### Backend (wrangler.toml)
+## Environment variables
 
-```toml
-[env.production.vars]
-API_BASE_URL = "https://api.smsflare.com"
-DASHBOARD_URL = "https://smsflare.com"
-POLLING_INTERVAL = "30"
-DEVICE_HEARTBEAT_INTERVAL = "600"
+**Backend** — set in `wrangler.toml` (vars) or via `wrangler secret put` (secrets):
+
+| Name | Where | Description |
+|---|---|---|
+| `JWT_SECRET` | Secret | Signs user JWTs. Required — backend warns on every request if missing. |
+| `API_BASE_URL` | Var | Public URL of the deployed Worker |
+| `DASHBOARD_URL` | Var | Public URL of the dashboard |
+
+For local dev, put secrets in `.dev.vars` (created automatically by `setup.sh`, gitignored):
+```
+JWT_SECRET=your-local-secret
 ```
 
-Set secret:
+**Dashboard** — `dashboard/.env.local`:
+```
+NEXT_PUBLIC_API_URL=http://localhost:8787
+```
+
+---
+
+## Database schema
+
+Six migrations in `migrations/`. Key tables:
+
+- **`users`** — email + SHA-256 password hash
+- **`devices`** — registered Android devices; `online` flag updated by heartbeat
+- **`api_keys`** — only the SHA-256 hash is stored, never the plaintext key
+- **`sms_jobs`** — one row per send request; status tracks delivery lifecycle
+- **`sms_logs`** — status change events per job (delivery timeline)
+- **`device_heartbeats`** — battery/signal history per device
 
 ```bash
-wrangler secret put JWT_SECRET --env production
+# Create a new migration
+npm run migrations:create -- <migration-name>
+
+# Check migration status
+npm run migrations:status
 ```
 
-### Dashboard (.env.local)
+---
 
-```
-NEXT_PUBLIC_API_URL=https://api.smsflare.com
-```
+## Limitations (MVP)
 
-## Development Notes
+- Messages capped at 160 characters
+- No retries — failed jobs stay `failed`
+- No scheduled sends
+- No bulk upload
+- Device assignment is first-come: the device with the most recent heartbeat gets the job. If it's unreachable, the job stalls as `assigned`.
+- Passwords hashed with SHA-256 (Web Crypto API constraint — bcrypt requires Node.js)
 
-### Authentication Flow
+## Scaling
 
-1. **User Login**: Email + password → JWT token (24h expiry)
-2. **Device Registration**: Pairing token → Device token (long-lived)
-3. **API Keys**: Generated in dashboard → Bearer token for external systems
+The current design handles ~100 active devices comfortably. Each device polls every 30 seconds, so 100 devices = ~200 requests/min — well within Cloudflare Workers free tier.
 
-### SMS Delivery Flow
-
-1. User sends SMS via dashboard/API
-2. Backend creates job with `pending` status
-3. Backend finds online device and assigns job
-4. Device polls `/api/device/jobs` every 30 seconds
-5. Device receives job and sends SMS locally via SmsManager
-6. Device reports status back: `sent`, `delivered`, or `failed`
-7. Dashboard updates in real-time (polls every 3s)
-
-### Scaling
-
-- **MVP Limit**: ~100 active devices
-- **Polling**: Every 30 seconds = ~200 requests/min
-- **For 1k+ devices**: Consider FCM push or WebSocket + Durable Objects
-
-## Limitations
-
-- No message retries (failed jobs remain pending)
-- No scheduled sends (MVP only)
-- No bulk SMS upload (single message only)
-- Rate-limited by carrier (typically 1 SMS/sec per SIM)
-
-## Security
-
-- Passwords hashed with SHA-256 (use bcrypt in production)
-- JWT tokens with 24h expiry
-- API keys are one-time display only
-- Device tokens are unique per device
-- All communication over HTTPS (required for production)
-
-## Future Enhancements
-
-- [ ] Message retries with exponential backoff
-- [ ] Scheduled sends
-- [ ] Bulk CSV upload
-- [ ] Load balancing across multiple devices
-- [ ] FCM push notifications for better efficiency
-- [ ] WebSocket for real-time updates
-- [ ] Multi-language support
-- [ ] Webhook callbacks for delivery events
-- [ ] Message templates
-- [ ] Analytics and reporting
-
-## Support
-
-For issues and questions, open an issue on GitHub.
-
-## License
-
-MIT
+For 1,000+ devices, replace polling with FCM push notifications or WebSocket via Durable Objects.

@@ -44,16 +44,16 @@ export default function SendPage() {
   return (
     <AppLayout>
       {/* Page header */}
-      <div className="sf-page-header">
+      <div className="sf-page-header px-5 py-6 md:px-8 md:py-6">
         <div>
           <h1 className="sf-page-title">Send SMS</h1>
           <p className="sf-page-subtitle">Dispatch a message via your registered devices</p>
         </div>
       </div>
 
-      <div className="sf-page-content">
-        <div style={{ maxWidth: '520px' }}>
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      <div className="sf-page-content p-5 md:p-8">
+        <div className="max-w-[520px]">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-5">
             {/* Recipient */}
             <div>
               <label className="sf-label">Recipient Number</label>
@@ -62,23 +62,20 @@ export default function SendPage() {
                 value={recipient}
                 onChange={(e) => setRecipient(e.target.value)}
                 placeholder="+1 234 567 8900"
-                className="sf-input"
-                style={{ fontFamily: 'DM Mono, monospace' }}
+                className="sf-input font-mono"
               />
-              <p style={{ fontSize: '12px', color: 'var(--text-3)', marginTop: '5px' }}>
+              <p className="text-[12px] text-text-3 mt-1.5">
                 Include country code, e.g. +12345678900
               </p>
             </div>
 
             {/* Message */}
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                <label className="sf-label" style={{ marginBottom: 0 }}>Message</label>
-                <span style={{
-                  fontFamily: 'DM Mono, monospace',
-                  fontSize: '11.5px',
-                  color: overLimit ? 'var(--status-failed)' : count > MAX * 0.8 ? 'var(--status-pending)' : 'var(--text-3)',
-                }}>
+              <div className="flex justify-between items-center mb-1.5">
+                <label className="sf-label mb-0">Message</label>
+                <span className={`font-mono text-[11.5px] ${
+                  overLimit ? 'text-[var(--status-failed)]' : count > MAX * 0.8 ? 'text-[var(--status-pending)]' : 'text-text-3'
+                }`}>
                   {count} / {MAX}
                 </span>
               </div>
@@ -87,24 +84,16 @@ export default function SendPage() {
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="Type your message..."
                 rows={5}
-                className="sf-input"
-                style={{ resize: 'none', lineHeight: '1.55' }}
+                className="sf-input resize-none leading-[1.55]"
               />
               {/* Character bar */}
-              <div style={{
-                marginTop: '6px',
-                height: '2px',
-                background: 'var(--border)',
-                borderRadius: '1px',
-                overflow: 'hidden',
-              }}>
-                <div style={{
-                  height: '100%',
-                  width: `${pct}%`,
-                  background: overLimit ? 'var(--status-failed)' : count > MAX * 0.8 ? 'var(--status-pending)' : 'var(--accent)',
-                  borderRadius: '1px',
-                  transition: 'width 0.1s, background 0.15s',
-                }} />
+              <div className="mt-1.5 h-0.5 bg-border rounded-sm overflow-hidden">
+                <div 
+                  className={`h-full rounded-sm transition-all duration-100 ${
+                    overLimit ? 'bg-[var(--status-failed)]' : count > MAX * 0.8 ? 'bg-[var(--status-pending)]' : 'bg-accent'
+                  }`}
+                  style={{ width: `${pct}%` }}
+                />
               </div>
             </div>
 
@@ -112,16 +101,15 @@ export default function SendPage() {
             {success && <div className="sf-alert-success">{success}</div>}
 
             {/* Actions */}
-            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            <div className="flex gap-2.5 items-center">
               <button
                 type="submit"
                 disabled={loading || overLimit}
-                className="sf-btn-primary"
-                style={{ padding: '10px 24px', display: 'flex', alignItems: 'center', gap: '7px' }}
+                className="sf-btn-primary px-6 py-2.5 flex items-center gap-[7px] w-full sm:w-auto justify-center"
               >
                 {loading ? (
                   <>
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ animation: 'spin 0.8s linear infinite' }}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="animate-spin">
                       <path d="M21 12a9 9 0 1 1-6.219-8.56" />
                     </svg>
                     Queuing...
@@ -139,22 +127,14 @@ export default function SendPage() {
           </form>
 
           {/* Info box */}
-          <div style={{
-            marginTop: '32px',
-            background: 'var(--surface)',
-            border: '1px solid var(--border)',
-            borderRadius: '8px',
-            padding: '16px',
-          }}>
-            <p style={{ fontSize: '12px', color: 'var(--text-3)', lineHeight: '1.6' }}>
+          <div className="mt-8 bg-surface border border-border rounded-lg p-4">
+            <p className="text-[12px] text-text-3 leading-relaxed">
               Messages are dispatched to the device with the most recent heartbeat.
-              Failed jobs remain in <span style={{ fontFamily: 'DM Mono, monospace', color: 'var(--status-failed)' }}>failed</span> state permanently — there is no automatic retry.
+              Failed jobs remain in <span className="font-mono text-[var(--status-failed)]">failed</span> state permanently — there is no automatic retry.
             </p>
           </div>
         </div>
       </div>
-
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </AppLayout>
   );
 }

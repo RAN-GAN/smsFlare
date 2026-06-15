@@ -9,24 +9,16 @@ import useAuthStore from '../store/auth.js';
 
 function Section({ title, subtitle, children }) {
   return (
-    <div style={{
-      background: 'var(--surface)',
-      border: '1px solid var(--border)',
-      borderRadius: '10px',
-      overflow: 'hidden',
-    }}>
-      <div style={{
-        padding: '18px 22px',
-        borderBottom: '1px solid var(--border)',
-      }}>
-        <h2 style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-1)', marginBottom: subtitle ? '2px' : 0 }}>
+    <div className="bg-surface border border-border rounded-[10px] overflow-hidden">
+      <div className="px-5 py-4.5 md:px-[22px] md:py-[18px] border-b border-border">
+        <h2 className={`text-[14px] font-semibold text-text-1 ${subtitle ? 'mb-0.5' : 'mb-0'}`}>
           {title}
         </h2>
         {subtitle && (
-          <p style={{ fontSize: '12.5px', color: 'var(--text-2)', marginTop: '2px' }}>{subtitle}</p>
+          <p className="text-[12.5px] text-text-2 mt-0.5">{subtitle}</p>
         )}
       </div>
-      <div style={{ padding: '22px' }}>
+      <div className="p-5 md:p-[22px]">
         {children}
       </div>
     </div>
@@ -41,43 +33,17 @@ function CopyableCode({ value, label }) {
     setTimeout(() => setCopied(false), 2000);
   };
   return (
-    <div>
+    <div className="w-full">
       {label && <div className="sf-label">{label}</div>}
-      <div style={{
-        display: 'flex',
-        gap: '0',
-        background: 'var(--surface-2)',
-        border: '1px solid var(--border-2)',
-        borderRadius: '6px',
-        overflow: 'hidden',
-      }}>
-        <div style={{
-          flex: 1,
-          padding: '9px 12px',
-          fontFamily: 'DM Mono, monospace',
-          fontSize: '12px',
-          color: 'var(--text-2)',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-        }}>
+      <div className="flex bg-surface-2 border border-border-2 rounded-md overflow-hidden">
+        <div className="flex-1 p-2.25 px-3 font-mono text-[12px] text-text-2 overflow-hidden text-ellipsis whitespace-nowrap min-w-0">
           {value}
         </div>
         <button
           onClick={copy}
-          style={{
-            padding: '0 14px',
-            background: copied ? 'var(--accent-subtle)' : 'var(--surface-3)',
-            border: 'none',
-            borderLeft: '1px solid var(--border)',
-            color: copied ? 'var(--accent)' : 'var(--text-2)',
-            fontFamily: 'DM Mono, monospace',
-            fontSize: '11.5px',
-            fontWeight: '500',
-            cursor: 'pointer',
-            transition: 'all 0.12s',
-            whiteSpace: 'nowrap',
-          }}
+          className={`px-3.5 border-none border-l border-border font-mono text-[11.5px] font-medium cursor-pointer transition-all whitespace-nowrap ${
+            copied ? 'bg-[var(--accent-subtle)] text-accent' : 'bg-surface-3 text-text-2'
+          }`}
         >
           {copied ? 'Copied' : 'Copy'}
         </button>
@@ -195,19 +161,19 @@ export default function SettingsPage() {
 
   return (
     <AppLayout>
-      <div className="sf-page-header">
+      <div className="sf-page-header px-5 py-6 md:px-8 md:py-6">
         <div>
           <h1 className="sf-page-title">Settings</h1>
           <p className="sf-page-subtitle">Devices, API keys, and account management</p>
         </div>
       </div>
 
-      <div className="sf-page-content">
+      <div className="sf-page-content p-5 md:p-8">
         {error && (
-          <div className="sf-alert-error" style={{ marginBottom: '20px' }}>{error}</div>
+          <div className="sf-alert-error mb-5">{error}</div>
         )}
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '680px' }}>
+        <div className="flex flex-col gap-4 max-w-[680px]">
 
           {/* Device Pairing */}
           <Section title="Device Pairing" subtitle="Generate a one-time token to pair a new Android device">
@@ -215,54 +181,33 @@ export default function SettingsPage() {
               <button
                 onClick={handleGeneratePairingToken}
                 disabled={loading}
-                className="sf-btn-primary"
-                style={{ padding: '9px 18px' }}
+                className="sf-btn-primary px-4.5 py-2.25 w-full sm:w-auto"
               >
                 {loading ? 'Generating...' : 'Generate Pairing Token'}
               </button>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                <div style={{ display: 'flex', gap: '24px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+              <div className="flex flex-col gap-5">
+                <div className="flex flex-col sm:flex-row gap-6 items-center sm:items-start">
                   {/* QR Code */}
-                  <div style={{
-                    padding: '14px',
-                    background: '#ffffff',
-                    borderRadius: '8px',
-                    flexShrink: 0,
-                  }}>
+                  <div className="p-3.5 bg-white rounded-lg shrink-0">
                     <QRCode value={qrValue} size={140} />
                   </div>
 
                   {/* Manual fallback */}
-                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '12px', minWidth: '220px' }}>
-                    <p style={{ fontSize: '13px', color: 'var(--text-2)' }}>
+                  <div className="flex-1 flex flex-col gap-3 min-w-0 w-full">
+                    <p className="text-[13px] text-text-2">
                       Scan the QR code with the Android app, or enter the token manually.
                     </p>
                     <CopyableCode value={pairingToken} label="Pairing Token (expires in 1 hour)" />
                     <div>
                       <div className="sf-label">API URL</div>
-                      <code style={{
-                        fontFamily: 'DM Mono, monospace',
-                        fontSize: '12px',
-                        color: 'var(--text-2)',
-                      }}>
+                      <code className="font-mono text-[12px] text-text-2 break-all">
                         {process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8787'}
                       </code>
                     </div>
                     <button
                       onClick={() => { setShowPairingToken(false); setPairingToken(''); }}
-                      style={{
-                        background: 'transparent',
-                        border: 'none',
-                        color: 'var(--text-3)',
-                        fontSize: '12.5px',
-                        cursor: 'pointer',
-                        textAlign: 'left',
-                        padding: '0',
-                        transition: 'color 0.12s',
-                      }}
-                      onMouseEnter={e => e.currentTarget.style.color = 'var(--text-2)'}
-                      onMouseLeave={e => e.currentTarget.style.color = 'var(--text-3)'}
+                      className="bg-transparent border-none text-text-3 text-[12.5px] cursor-pointer text-left p-0 transition-colors hover:text-text-2"
                     >
                       Generate a new token
                     </button>
@@ -277,20 +222,14 @@ export default function SettingsPage() {
             <button
               onClick={handleGenerateApiKey}
               disabled={loading}
-              className="sf-btn-ghost"
-              style={{ marginBottom: '20px' }}
+              className="sf-btn-ghost mb-5 w-full sm:w-auto"
             >
               {loading ? 'Creating...' : 'Create API Key'}
             </button>
 
             {apiKeys.length > 0 ? (
-              <div style={{
-                background: 'var(--surface-2)',
-                border: '1px solid var(--border)',
-                borderRadius: '8px',
-                overflow: 'hidden',
-              }}>
-                <table className="sf-table">
+              <div className="bg-surface-2 border border-border rounded-lg overflow-x-auto">
+                <table className="sf-table min-w-[400px] sm:min-w-0">
                   <thead>
                     <tr>
                       <th>Key Preview</th>
@@ -301,13 +240,13 @@ export default function SettingsPage() {
                   <tbody>
                     {apiKeys.map((key) => (
                       <tr key={key.id}>
-                        <td style={{ fontFamily: 'DM Mono, monospace', fontSize: '12.5px', color: 'var(--text-1)' }}>
+                        <td className="font-mono text-[12.5px] text-text-1">
                           {key.key_preview}
                         </td>
-                        <td style={{ fontFamily: 'DM Mono, monospace', fontSize: '12px' }}>
+                        <td className="font-mono text-[12px]">
                           {new Date(key.created_at * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                         </td>
-                        <td style={{ fontFamily: 'DM Mono, monospace', fontSize: '12px' }}>
+                        <td className="font-mono text-[12px]">
                           {key.expires_at
                             ? new Date(key.expires_at * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
                             : 'Never'
@@ -319,13 +258,13 @@ export default function SettingsPage() {
                 </table>
               </div>
             ) : (
-              <p style={{ fontSize: '13px', color: 'var(--text-3)' }}>No API keys yet.</p>
+              <p className="text-[13px] text-text-3">No API keys yet.</p>
             )}
           </Section>
 
           {/* Integration */}
           <Section title="Integration Guide" subtitle="Send SMS programmatically via the REST API">
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div className="flex flex-col gap-4">
               <div>
                 <div className="sf-label">Send SMS</div>
                 <pre className="sf-code-block">{`curl -X POST https://your-worker.workers.dev/api/sms/send \\
@@ -346,7 +285,7 @@ export default function SettingsPage() {
 
           {/* Your Data */}
           <Section title="Your Data" subtitle="All data lives in your Cloudflare D1 database — you own it entirely">
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div className="flex flex-col gap-3.5">
               <div>
                 <div className="sf-label">Inspect directly</div>
                 <pre className="sf-code-block">{`# Recent SMS jobs
@@ -366,7 +305,7 @@ wrangler d1 execute smsflare \\
 
           {/* Change Password */}
           <Section title="Change Password">
-            <form onSubmit={handleChangePassword} style={{ display: 'flex', flexDirection: 'column', gap: '14px', maxWidth: '320px' }}>
+            <form onSubmit={handleChangePassword} className="flex flex-col gap-3.5 max-w-[320px]">
               <div>
                 <label className="sf-label">Current Password</label>
                 <input type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} required className="sf-input" />
@@ -385,7 +324,7 @@ wrangler d1 execute smsflare \\
                 </div>
               )}
               <div>
-                <button type="submit" disabled={loading} className="sf-btn-ghost" style={{ padding: '9px 18px' }}>
+                <button type="submit" disabled={loading} className="sf-btn-ghost px-4.5 py-2.25 w-full sm:w-auto">
                   {loading ? 'Updating...' : 'Update Password'}
                 </button>
               </div>
@@ -393,79 +332,41 @@ wrangler d1 execute smsflare \\
           </Section>
 
           {/* Danger Zone */}
-          <div style={{
-            background: 'var(--surface)',
-            border: '1px solid rgba(248, 113, 113, 0.2)',
-            borderRadius: '10px',
-            overflow: 'hidden',
-          }}>
-            <div style={{
-              padding: '18px 22px',
-              borderBottom: '1px solid rgba(248, 113, 113, 0.15)',
-            }}>
-              <h2 style={{ fontSize: '14px', fontWeight: '600', color: '#F87171' }}>Danger Zone</h2>
-              <p style={{ fontSize: '12.5px', color: 'var(--text-3)', marginTop: '2px' }}>
+          <div className="bg-surface border border-[rgba(248,113,113,0.2)] rounded-[10px] overflow-hidden">
+            <div className="px-5 py-4.5 md:px-[22px] md:py-[18px] border-b border-[rgba(248,113,113,0.15)]">
+              <h2 className="text-[14px] font-semibold text-[#F87171]">Danger Zone</h2>
+              <p className="text-[12.5px] text-text-3 mt-0.5">
                 These actions are permanent and cannot be undone.
               </p>
             </div>
-            <div style={{ padding: '22px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '14px 16px',
-                background: 'var(--surface-2)',
-                border: '1px solid var(--border)',
-                borderRadius: '8px',
-                gap: '16px',
-              }}>
+            <div className="p-5 md:p-[22px] flex flex-col gap-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 px-4 bg-surface-2 border border-border rounded-lg gap-4">
                 <div>
-                  <p style={{ fontSize: '13.5px', fontWeight: '500', color: 'var(--text-1)', marginBottom: '2px' }}>
+                  <p className="text-[13.5px] font-medium text-text-1 mb-0.5">
                     Clear SMS History
                   </p>
-                  <p style={{ fontSize: '12px', color: 'var(--text-3)' }}>
+                  <p className="text-[12px] text-text-3">
                     Delete all SMS jobs and delivery logs.
                   </p>
                 </div>
-                <button onClick={handleClearHistory} disabled={loading} className="sf-btn-danger" style={{ whiteSpace: 'nowrap' }}>
+                <button onClick={handleClearHistory} disabled={loading} className="sf-btn-danger whitespace-nowrap w-full sm:w-auto">
                   Clear History
                 </button>
               </div>
 
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '14px 16px',
-                background: 'rgba(248, 113, 113, 0.04)',
-                border: '1px solid rgba(248, 113, 113, 0.2)',
-                borderRadius: '8px',
-                gap: '16px',
-              }}>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 px-4 bg-[rgba(248,113,113,0.04)] border border-[rgba(248,113,113,0.2)] rounded-lg gap-4">
                 <div>
-                  <p style={{ fontSize: '13.5px', fontWeight: '500', color: '#F87171', marginBottom: '2px' }}>
+                  <p className="text-[13.5px] font-medium text-[#F87171] mb-0.5">
                     Delete Account
                   </p>
-                  <p style={{ fontSize: '12px', color: 'var(--text-3)' }}>
+                  <p className="text-[12px] text-text-3">
                     Remove account, all devices, jobs, and API keys.
                   </p>
                 </div>
                 <button
                   onClick={handleDeleteAccount}
                   disabled={loading}
-                  style={{
-                    background: '#F87171',
-                    border: 'none',
-                    borderRadius: '6px',
-                    color: '#fff',
-                    padding: '8px 16px',
-                    fontSize: '13.5px',
-                    fontWeight: '500',
-                    cursor: 'pointer',
-                    opacity: loading ? 0.4 : 1,
-                    whiteSpace: 'nowrap',
-                    transition: 'opacity 0.12s',
-                  }}
+                  className="bg-[#F87171] border-none rounded-md text-white px-4 py-2 text-[13.5px] font-medium cursor-pointer transition-opacity whitespace-nowrap w-full sm:w-auto hover:opacity-90 disabled:opacity-40"
                 >
                   Delete Account
                 </button>

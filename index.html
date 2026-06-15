@@ -199,23 +199,52 @@
       color: var(--text-2)
     }
 
-    .nav-cta {
-      background: transparent !important;
-      color: var(--accent) !important;
-      font-family: 'Oxanium', sans-serif !important;
-      font-size: 11.5px !important;
-      font-weight: 700 !important;
-      letter-spacing: .12em !important;
-      padding: 7px 16px !important;
-      border: 1px solid rgba(0, 255, 127, .3) !important;
-      border-radius: 3px !important;
-      transition: background .2s, border-color .2s, box-shadow .2s !important;
+    .nav-toggle {
+      display: none;
+      background: transparent;
+      border: none;
+      color: var(--text-1);
+      cursor: pointer;
+      padding: 4px;
+      z-index: 1000;
     }
 
-    .nav-cta:hover {
-      background: var(--accent-faint) !important;
-      border-color: rgba(0, 255, 127, .6) !important;
-      box-shadow: 0 0 16px rgba(0, 255, 127, .12) !important;
+    .mobile-nav {
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      z-index: 999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 32px;
+      padding: 48px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .3s ease;
+    }
+
+    .mobile-nav.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .mobile-nav-links {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
+      list-style: none;
+      text-align: center;
+    }
+
+    .mobile-nav-links a {
+      font-family: 'Oxanium', sans-serif;
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text-1);
+      letter-spacing: .05em;
     }
 
     /* ── HERO ─────────────────────────────────────────────────── */
@@ -935,6 +964,7 @@
       line-height: 1.9;
       overflow-x: auto;
       color: var(--text-2);
+      white-space: pre-wrap;
     }
 
     /* ── DEPLOY ───────────────────────────────────────────────── */
@@ -1084,46 +1114,121 @@
     /* ── RESPONSIVE ───────────────────────────────────────────── */
     @media(max-width:900px) {
       nav {
-        padding: 0 20px
+        padding: 0 24px;
+        background: rgba(2, 6, 4, .92);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border-bottom: 1px solid var(--border-2);
       }
 
-      .nav-links li:not(:last-child) {
-        display: none
+      .nav-links {
+        display: none;
       }
 
-      .steps {
-        grid-template-columns: 1fr
+      .nav-toggle {
+        display: block;
       }
 
-      .feat-grid {
-        grid-template-columns: 1fr 1fr
+      .hero {
+        padding: 110px 20px 60px;
       }
 
-      .api-grid {
-        grid-template-columns: 1fr
+      .hero-title {
+        font-size: clamp(38px, 12vw, 64px);
       }
 
-      .api-code {
-        position: static
+      .hero-sub {
+        font-size: 15px;
+      }
+
+      .hero-terminal {
+        margin-top: 40px;
       }
 
       .stats-bar {
-        grid-template-columns: 1fr 1fr
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .stat {
+        padding: 30px 20px;
+      }
+
+      .stat-n {
+        font-size: 36px;
+      }
+
+      .steps {
+        grid-template-columns: 1fr;
+      }
+
+      .feat-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .api-grid {
+        grid-template-columns: 1fr;
+        gap: 40px;
+      }
+
+      .api-code {
+        position: static;
       }
 
       footer {
-        padding: 28px 20px;
-        flex-direction: column
+        padding: 40px 24px;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+      }
+
+      .footer-links {
+        margin-top: 10px;
       }
     }
 
-    @media(max-width:520px) {
-      .feat-grid {
-        grid-template-columns: 1fr
+    @media(max-width:640px) {
+      .hero-actions {
+        flex-direction: column;
+        width: 100%;
+        max-width: 280px;
+        margin-left: auto;
+        margin-right: auto;
       }
 
-      .flow-connector {
-        flex: 0 0 24px
+      .btn-primary, .btn-ghost {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .feat-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .flow-node {
+        min-width: 90px;
+        padding: 14px;
+      }
+
+      .flow-em {
+        width: 24px;
+        height: 24px;
+      }
+
+      .flow-node-title {
+        font-size: 11px;
+      }
+
+      .stats-bar {
+        grid-template-columns: 1fr;
+      }
+
+      .stat {
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .stat:last-child {
+        border-bottom: none;
       }
     }
   </style>
@@ -1155,7 +1260,25 @@
       <li><a href="#api">API</a></li>
       <li><a href="/public-docs">Docs</a></li>
     </ul>
+    <button class="nav-toggle" id="nav-toggle" aria-label="Toggle menu">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="3" y1="12" x2="21" y2="12"></line>
+        <line x1="3" y1="6" x2="21" y2="6"></line>
+        <line x1="3" y1="18" x2="21" y2="18"></line>
+      </svg>
+    </button>
   </nav>
+
+  <!-- MOBILE NAV -->
+  <div class="mobile-nav" id="mobile-nav">
+    <ul class="mobile-nav-links">
+      <li><a href="#how">How it works</a></li>
+      <li><a href="#features">Features</a></li>
+      <li><a href="#api">API</a></li>
+      <li><a href="/public-docs">Docs</a></li>
+    </ul>
+    <a href="#deploy" class="btn-primary" id="mobile-nav-cta">GET STARTED</a>
+  </div>
 
   <!-- HERO -->
   <div class="hero">
@@ -1519,36 +1642,26 @@
               style="font-family:'Share Tech Mono',monospace;font-size:10.5px;color:var(--text-3);letter-spacing:.06em">batch-send.js</span>
           </div>
           <div class="api-code-body">
-            <span style="color:var(--text-3)">// Send to multiple recipients in one call</span>
-            <span style="color:var(--blue)">const</span> <span style="color:var(--text-1)">res</span> <span
-              style="color:var(--text-3)">=</span> <span style="color:var(--blue)">await</span> <span
-              style="color:var(--text-2)">fetch</span>(<span
-              style="color:var(--accent-2)">`${BASE}/api/sms/send/batch`</span>, {
-            <span style="color:var(--accent)">method</span>: <span style="color:var(--accent-2)">'POST'</span>,
-            <span style="color:var(--accent)">headers</span>: {
-            <span style="color:var(--accent-2)">'Authorization'</span>: <span style="color:var(--accent-2)">`Bearer
-              ${API_KEY}`</span>,
-            <span style="color:var(--accent-2)">'Content-Type'</span>: <span
-              style="color:var(--accent-2)">'application/json'</span>,
-            },
-            <span style="color:var(--accent)">body</span>: <span style="color:var(--text-2)">JSON</span>.<span
-              style="color:var(--blue)">stringify</span>({
-            <span style="color:var(--accent)">messages</span>: [
-            { <span style="color:var(--accent)">to</span>: <span style="color:var(--accent-2)">'+14155550001'</span>,
-            <span style="color:var(--accent)">message</span>: <span style="color:var(--accent-2)">'Hi Alice'</span> },
-            { <span style="color:var(--accent)">to</span>: <span style="color:var(--accent-2)">'+14155550002'</span>,
-            <span style="color:var(--accent)">message</span>: <span style="color:var(--accent-2)">'Hi Bob'</span> },
-            ],
-            }),
-            });
+<span style="color:var(--text-3)">// Send to multiple recipients in one call</span>
+<span style="color:var(--blue)">const</span> <span style="color:var(--text-1)">res</span> <span style="color:var(--text-3)">=</span> <span style="color:var(--blue)">await</span> <span style="color:var(--text-2)">fetch</span>(<span style="color:var(--accent-2)">`${BASE}/api/sms/send/batch`</span>, {
+  <span style="color:var(--accent)">method</span>: <span style="color:var(--accent-2)">'POST'</span>,
+  <span style="color:var(--accent)">headers</span>: {
+    <span style="color:var(--accent-2)">'Authorization'</span>: <span style="color:var(--accent-2)">`Bearer ${API_KEY}`</span>,
+    <span style="color:var(--accent-2)">'Content-Type'</span>: <span style="color:var(--accent-2)">'application/json'</span>,
+  },
+  <span style="color:var(--accent)">body</span>: <span style="color:var(--text-2)">JSON</span>.<span style="color:var(--blue)">stringify</span>({
+    <span style="color:var(--accent)">messages</span>: [
+      { <span style="color:var(--accent)">to</span>: <span style="color:var(--accent-2)">'+14155550001'</span>, <span style="color:var(--accent)">message</span>: <span style="color:var(--accent-2)">'Hi Alice'</span> },
+      { <span style="color:var(--accent)">to</span>: <span style="color:var(--accent-2)">'+14155550002'</span>, <span style="color:var(--accent)">message</span>: <span style="color:var(--accent-2)">'Hi Bob'</span> },
+    ],
+  }),
+});
 
-            <span style="color:var(--blue)">const</span> <span style="color:var(--text-1)">data</span> <span
-              style="color:var(--text-3)">=</span> <span style="color:var(--blue)">await</span> <span
-              style="color:var(--text-1)">res</span>.<span style="color:var(--blue)">json</span>();
-            <span style="color:var(--text-3)">// {</span>
-            <span style="color:var(--text-3)">// results: [{ job_id, status, assigned_device }, ...],</span>
-            <span style="color:var(--text-3)">// count: 2</span>
-            <span style="color:var(--text-3)">// }</span>
+<span style="color:var(--blue)">const</span> <span style="color:var(--text-1)">data</span> <span style="color:var(--text-3)">=</span> <span style="color:var(--blue)">await</span> <span style="color:var(--text-1)">res</span>.<span style="color:var(--blue)">json</span>();
+<span style="color:var(--text-3)">// {</span>
+<span style="color:var(--text-3)">//   results: [{ job_id, status, assigned_device }, ...],</span>
+<span style="color:var(--text-3)">//   count: 2</span>
+<span style="color:var(--text-3)">// }</span>
           </div>
         </div>
       </div>
@@ -1580,7 +1693,7 @@
           <div class="dl"><span class="dl-n">1</span><span class="dl-c"><span class="dc"># Clone the
                 repository</span></span></div>
           <div class="dl"><span class="dl-n">2</span><span class="dl-c"><span class="dw">git clone</span> <span
-                class="da">github.com/your-org/smsflare</span></span></div>
+                class="da">https://github.com/RAN-GAN/smsFlare</span></span></div>
           <div class="dl"><span class="dl-n">3</span><span class="dl-c"><span class="dw">cd</span> smsflare</span></div>
           <div class="dl"><span class="dl-n">4</span><span class="dl-c">&nbsp;</span></div>
           <div class="dl"><span class="dl-n">5</span><span class="dl-c"><span class="dc"># Run the interactive setup
@@ -1625,6 +1738,28 @@
     window.addEventListener('scroll', () => {
       nav.classList.toggle('scrolled', window.scrollY > 44);
     }, { passive: true });
+
+    // Mobile nav toggle
+    const navToggle = document.getElementById('nav-toggle');
+    const mobileNav = document.getElementById('mobile-nav');
+    const mobileNavLinks = document.querySelectorAll('.mobile-nav-links a, #mobile-nav-cta');
+
+    navToggle.addEventListener('click', () => {
+      mobileNav.classList.toggle('open');
+      const isOpen = mobileNav.classList.contains('open');
+      navToggle.innerHTML = isOpen 
+        ? '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>'
+        : '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>';
+      document.body.style.overflow = isOpen ? 'hidden' : '';
+    });
+
+    mobileNavLinks.forEach(link => {
+      link.addEventListener('click', () => {
+        mobileNav.classList.remove('open');
+        navToggle.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>';
+        document.body.style.overflow = '';
+      });
+    });
 
     // Scroll-reveal
     const reveals = document.querySelectorAll('.reveal');

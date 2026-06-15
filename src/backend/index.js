@@ -60,6 +60,13 @@ app.get('/auth/setup', async (c) => {
   }
 });
 
+app.get('/auth/verify', verifyUserToken, (c) => {
+  return c.json({
+    valid: true,
+    user: { id: c.get('user_id'), email: c.get('user_email') },
+  });
+});
+
 // First-run only — creates the admin account. Returns 403 after first use.
 app.post('/auth/setup', async (c) => {
   try {

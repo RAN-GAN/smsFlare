@@ -22,6 +22,13 @@ export async function apiCall(endpoint, options = {}) {
         return null;
     }
 
+    if (response.status === 401) {
+        Cookies.remove('token');
+        if (typeof window !== 'undefined') {
+            window.location.href = '/auth/login/';
+        }
+    }
+
     const data = await response.json();
 
     if (!response.ok) {
@@ -101,6 +108,9 @@ export const apiKeyApi = {
 
 // Device pairing + account management
 export const authApi = {
+    verify: () =>
+        apiCall('/auth/verify'),
+
     generatePairingToken: () =>
         apiCall('/auth/device-pair', {
             method: 'POST',

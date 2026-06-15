@@ -43,3 +43,5 @@ dashboard/out/
 *.db
 *.sqlite
 /android-app/.gradle/*
+docs/
+*.apk

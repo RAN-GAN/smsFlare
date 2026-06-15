@@ -11,28 +11,38 @@ export default function RootPage() {
 
   useEffect(() => {
     async function checkAuthAndRedirect() {
-      // 1. If we have a token, go straight to dashboard
+      // 1. If we have a token, try to verify it
       const token = Cookies.get('token');
       if (token) {
-        router.replace('/dashboard/');
-        return;
+        try {
+          const res = await fetch(`${API_BASE_URL}/auth/verify`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (res.ok) {
+            router.replace('/dashboard/');
+            return;
+          }
+          // If not ok (e.g. 401), clear token and continue to setup check
+          Cookies.remove('token');
+        } catch (err) {
+          console.error('Token verification failed:', err);
+        }
       }
 
-      // 2. No token? Check if the instance is already configured
+      // 2. Check if the instance is already configured
       try {
         const res = await fetch(`${API_BASE_URL}/auth/setup`);
-        const { configured } = await res.json();
+        if (!res.ok) throw new Error('Failed to fetch setup status');
         
+        const { configured } = await res.json();
         if (!configured) {
-          // First time install -> Setup
           router.replace('/auth/setup/');
         } else {
-          // Already configured -> Login
           router.replace('/auth/login/');
         }
       } catch (err) {
-        console.error('Failed to connect to backend:', err);
-        // Fallback to login if backend is unreachable
+        console.error('Setup check failed:', err);
+        // Fallback to login if backend is unreachable or error occurs
         router.replace('/auth/login/');
       }
     }

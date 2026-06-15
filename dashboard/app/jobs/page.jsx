@@ -108,82 +108,46 @@ function JobDetailContent() {
   }
 
   return (
-    <div className="sf-page-content">
+    <div className="sf-page-content p-5 md:p-8 flex-1">
       {job && (
-        <div style={{ maxWidth: '560px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div className="max-w-[560px] flex flex-col gap-4">
           {/* Job card */}
-          <div style={{
-            background: 'var(--surface)',
-            border: '1px solid var(--border)',
-            borderRadius: '10px',
-            overflow: 'hidden',
-          }}>
+          <div className="bg-surface border border-border rounded-[10px] overflow-hidden">
             {/* Card header */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '16px 20px',
-              borderBottom: '1px solid var(--border)',
-            }}>
-              <span style={{
-                fontFamily: 'DM Mono, monospace',
-                fontSize: '12px',
-                color: 'var(--text-3)',
-              }}>
+            <div className="flex items-center justify-between p-4 md:px-5 md:py-4 border-b border-border">
+              <span className="font-mono text-[12px] text-text-3 truncate max-w-[150px] sm:max-w-none">
                 {job.id}
               </span>
               <span className={statusClass(job.status)}>{job.status}</span>
             </div>
 
             {/* Card body */}
-            <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div className="p-5 md:p-6 flex flex-col gap-4">
               <div>
                 <div className="sf-label">Recipient</div>
-                <div style={{
-                  fontFamily: 'DM Mono, monospace',
-                  fontSize: '15px',
-                  fontWeight: '500',
-                  color: 'var(--text-1)',
-                }}>
+                <div className="font-mono text-[15px] font-medium text-text-1">
                   {job.recipient}
                 </div>
               </div>
 
               <div>
                 <div className="sf-label">Message</div>
-                <div style={{
-                  background: 'var(--surface-2)',
-                  border: '1px solid var(--border)',
-                  borderRadius: '6px',
-                  padding: '12px 14px',
-                  fontSize: '13.5px',
-                  color: 'var(--text-1)',
-                  lineHeight: '1.55',
-                  whiteSpace: 'pre-wrap',
-                  wordBreak: 'break-word',
-                }}>
+                <div className="bg-surface-2 border border-border rounded-md p-3 px-3.5 text-[13.5px] text-text-1 leading-[1.55] whitespace-pre-wrap break-words">
                   {job.message}
                 </div>
               </div>
 
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: '16px',
-                paddingTop: '4px',
-                borderTop: '1px solid var(--border)',
-              }}>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-border">
                 <div>
                   <div className="sf-label">Created</div>
-                  <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '12.5px', color: 'var(--text-2)' }}>
+                  <div className="font-mono text-[12.5px] text-text-2">
                     {formatTime(job.created_at)}
                   </div>
                 </div>
                 {job.delivered_at && (
                   <div>
                     <div className="sf-label">Delivered</div>
-                    <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '12.5px', color: 'var(--status-delivered)' }}>
+                    <div className="font-mono text-[12.5px] text-[var(--status-delivered)]">
                       {formatTime(job.delivered_at)}
                     </div>
                   </div>
@@ -194,59 +158,29 @@ function JobDetailContent() {
 
           {/* Timeline */}
           {logs.length > 0 && (
-            <div style={{
-              background: 'var(--surface)',
-              border: '1px solid var(--border)',
-              borderRadius: '10px',
-              overflow: 'hidden',
-            }}>
-              <div style={{
-                padding: '14px 20px',
-                borderBottom: '1px solid var(--border)',
-              }}>
-                <h2 style={{
-                  fontSize: '12px',
-                  fontWeight: '600',
-                  letterSpacing: '0.06em',
-                  textTransform: 'uppercase',
-                  color: 'var(--text-3)',
-                }}>
+            <div className="bg-surface border border-border rounded-[10px] overflow-hidden">
+              <div className="p-3.5 px-5 border-b border-border">
+                <h2 className="text-[12px] font-semibold tracking-[0.06em] uppercase text-text-3">
                   Delivery Timeline
                 </h2>
               </div>
-              <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '0' }}>
+              <div className="p-4 px-5 flex flex-col gap-0">
                 {logs.map((log, index) => (
-                  <div key={index} style={{
-                    display: 'flex',
-                    gap: '14px',
-                    paddingBottom: index < logs.length - 1 ? '16px' : '0',
-                    position: 'relative',
-                  }}>
+                  <div key={index} className={`flex gap-3.5 relative ${index < logs.length - 1 ? 'pb-4' : 'pb-0'}`}>
                     {/* Vertical line */}
                     {index < logs.length - 1 && (
-                      <div style={{
-                        position: 'absolute',
-                        left: '3.5px',
-                        top: '11px',
-                        bottom: '0',
-                        width: '1px',
-                        background: 'var(--border)',
-                      }} />
+                      <div className="absolute left-[3.5px] top-[11px] bottom-0 w-px bg-border" />
                     )}
                     <TimelineDot status={log.status} />
-                    <div style={{ flex: 1 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '2px' }}>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2.5 mb-0.5">
                         <span className={statusClass(log.status)}>{log.status}</span>
-                        <span style={{
-                          fontFamily: 'DM Mono, monospace',
-                          fontSize: '11.5px',
-                          color: 'var(--text-3)',
-                        }}>
+                        <span className="font-mono text-[11.5px] text-text-3">
                           {formatTime(log.timestamp)}
                         </span>
                       </div>
                       {log.error_message && (
-                        <p style={{ fontSize: '12.5px', color: 'var(--status-failed)', marginTop: '3px' }}>
+                        <p className="text-[12.5px] text-[var(--status-failed)] mt-1">
                           {log.error_message}
                         </p>
                       )}
@@ -266,19 +200,12 @@ function JobDetailContent() {
 export default function JobDetailPage() {
   return (
     <AppLayout>
-      <div className="sf-page-header">
-        <div>
+      <div className="sf-page-header flex-col sm:flex-row items-start sm:items-center gap-3 px-5 py-6 md:px-8 md:py-6">
+        <div className="flex-1">
           <h1 className="sf-page-title">Job Detail</h1>
           <p className="sf-page-subtitle">SMS delivery status and timeline</p>
         </div>
-        <Link href="/dashboard/" style={{
-          fontSize: '13px',
-          color: 'var(--text-2)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '5px',
-          transition: 'color 0.12s',
-        }}>
+        <Link href="/dashboard/" className="text-[13px] text-text-2 flex items-center gap-1 transition-colors hover:text-text-1">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="m19 12H5M12 5l-7 7 7 7" />
           </svg>
@@ -286,7 +213,7 @@ export default function JobDetailPage() {
         </Link>
       </div>
       <Suspense fallback={
-        <div className="sf-page-content" style={{ color: 'var(--text-2)', fontSize: '13.5px' }}>
+        <div className="sf-page-content p-5 md:p-8 text-text-2 text-[13.5px]">
           Loading...
         </div>
       }>

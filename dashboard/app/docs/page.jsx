@@ -306,6 +306,7 @@ export default function DocsPage() {
   const [BASE, setBase] = useState('https://your-worker.workers.dev');
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState('');
+  const [mobileTocOpen, setMobileTocOpen] = useState(false);
 
   useEffect(() => {
     if (!Cookies.get('token')) {
@@ -330,167 +331,155 @@ export default function DocsPage() {
     }
   };
 
+  const TocContent = () => (
+    <nav className="flex flex-col gap-0.5">
+      <div className="text-[11px] font-semibold text-text-3 tracking-[0.08em] uppercase mb-2.5 px-2">
+        On this page
+      </div>
+      {TOC.map(item => (
+        <div key={item.id}>
+          <a 
+            href={`#${item.id}`} 
+            onClick={() => setMobileTocOpen(false)}
+            className={`block px-2 py-1.5 rounded-md text-[13px] transition-all no-underline mb-px ${
+              active === item.id ? 'font-medium text-accent bg-[var(--accent-subtle)]' : 'font-normal text-text-2 hover:bg-surface-2'
+            }`}
+          >
+            {item.label}
+          </a>
+          {item.children && (
+            <div className="ml-3 border-l border-border pl-2 mb-0.5">
+              {item.children.map(child => (
+                <a 
+                  key={child.id} 
+                  href={`#${child.id}`} 
+                  onClick={() => setMobileTocOpen(false)}
+                  className={`block px-2 py-1 rounded text-[12.5px] transition-all no-underline mb-px ${
+                    active === child.id ? 'font-medium text-accent bg-[var(--accent-subtle)]' : 'font-normal text-text-3 hover:text-text-2'
+                  }`}
+                >
+                  {child.label}
+                </a>
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
+    </nav>
+  );
+
   return (
     <AppLayout>
-      <div className="sf-page-header">
-        <div>
+      <div className="sf-page-header flex-col md:flex-row items-start md:items-center gap-4 px-5 py-6 md:px-8 md:py-6">
+        <div className="flex-1">
           <h1 className="sf-page-title">Documentation</h1>
           <p className="sf-page-subtitle">Guides and API reference for SMS Flare</p>
         </div>
+        <button 
+          onClick={() => setMobileTocOpen(!mobileTocOpen)}
+          className="md:hidden flex items-center gap-2 px-3.5 py-2 rounded-md bg-surface border border-border text-[13px] text-text-2"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <line x1="3" x2="21" y1="12" y2="12" />
+            <line x1="3" x2="21" y1="6" y2="6" />
+            <line x1="3" x2="21" y1="18" y2="18" />
+          </svg>
+          Contents
+        </button>
       </div>
 
-      <div style={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
-        {/* Sidebar ToC */}
-        <aside style={{
-          width: '200px',
-          flexShrink: 0,
-          overflowY: 'auto',
-          padding: '24px',
-          borderRight: '1px solid var(--border)',
-        }}>
-          <div style={{ fontSize: '11px', fontWeight: '600', color: 'var(--text-3)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '10px' }}>
-            On this page
+      <div className="flex flex-1 min-h-0 overflow-hidden relative">
+        {/* Sidebar ToC (Desktop) */}
+        <aside className="hidden md:block w-[200px] shrink-0 overflow-y-auto p-6 border-r border-border">
+          <TocContent />
+        </aside>
+
+        {/* Mobile TOC Drawer */}
+        {mobileTocOpen && (
+          <div 
+            className="md:hidden fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm"
+            onClick={() => setMobileTocOpen(false)}
+          />
+        )}
+        <aside className={`md:hidden fixed top-0 bottom-0 right-0 z-[70] w-64 bg-surface border-l border-border p-6 overflow-y-auto transition-transform duration-300 ease-in-out ${mobileTocOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+          <div className="flex justify-between items-center mb-6">
+            <span className="text-[14px] font-semibold text-text-1">Contents</span>
+            <button onClick={() => setMobileTocOpen(false)} className="p-1 text-text-3">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="18" x2="6" y1="6" y2="18" />
+                <line x1="6" x2="18" y1="6" y2="18" />
+              </svg>
+            </button>
           </div>
-          <nav>
-            {TOC.map(item => (
-              <div key={item.id}>
-                <a href={`#${item.id}`} style={{
-                  display: 'block',
-                  padding: '5px 8px',
-                  borderRadius: '5px',
-                  fontSize: '13px',
-                  fontWeight: active === item.id ? '500' : '400',
-                  color: active === item.id ? 'var(--accent)' : 'var(--text-2)',
-                  background: active === item.id ? 'var(--accent-subtle)' : 'transparent',
-                  textDecoration: 'none',
-                  transition: 'all 0.1s',
-                  marginBottom: '1px',
-                }}>
-                  {item.label}
-                </a>
-                {item.children && (
-                  <div style={{ marginLeft: '12px', borderLeft: '1px solid var(--border)', paddingLeft: '8px', marginBottom: '2px' }}>
-                    {item.children.map(child => (
-                      <a key={child.id} href={`#${child.id}`} style={{
-                        display: 'block',
-                        padding: '4px 8px',
-                        borderRadius: '4px',
-                        fontSize: '12.5px',
-                        color: active === child.id ? 'var(--accent)' : 'var(--text-3)',
-                        fontWeight: active === child.id ? '500' : '400',
-                        background: active === child.id ? 'var(--accent-subtle)' : 'transparent',
-                        textDecoration: 'none',
-                        transition: 'all 0.1s',
-                        marginBottom: '1px',
-                      }}>
-                        {child.label}
-                      </a>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
-          </nav>
+          <TocContent />
         </aside>
 
         {/* Main content */}
-        <main style={{ flex: 1, overflowY: 'auto', padding: '32px 48px 80px' }}>
-          <div style={{ maxWidth: '720px' }}>
+        <main className="flex-1 overflow-y-auto p-5 md:p-12 pb-20">
+          <div className="max-w-[720px]">
 
             {/* Base URL configurator */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              background: 'var(--surface)',
-              border: '1px solid var(--border-2)',
-              borderRadius: '8px',
-              padding: '10px 14px',
-              marginBottom: '36px',
-            }}>
-              <span style={{ fontSize: '12px', color: 'var(--text-3)', whiteSpace: 'nowrap', fontFamily: 'DM Mono, monospace' }}>Base URL</span>
-              {editing ? (
-                <>
-                  <input
-                    autoFocus
-                    value={draft}
-                    onChange={e => setDraft(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter') commitBase(); if (e.key === 'Escape') setEditing(false); }}
-                    placeholder={BASE}
-                    style={{
-                      flex: 1,
-                      background: 'var(--surface-2)',
-                      border: '1px solid var(--accent)',
-                      borderRadius: '5px',
-                      padding: '5px 10px',
-                      fontFamily: 'DM Mono, monospace',
-                      fontSize: '12.5px',
-                      color: 'var(--text-1)',
-                      outline: 'none',
-                    }}
-                  />
-                  <button onClick={commitBase} style={{ fontSize: '12px', fontWeight: '600', color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px' }}>Save</button>
-                  <button onClick={() => setEditing(false)} style={{ fontSize: '12px', color: 'var(--text-3)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px' }}>Cancel</button>
-                </>
-              ) : (
-                <>
-                  <code style={{ flex: 1, fontFamily: 'DM Mono, monospace', fontSize: '12.5px', color: 'var(--text-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{BASE}</code>
-                  <div style={{ display: 'flex', gap: '4px' }}>
-                    {ENV_BASE && BASE !== ENV_BASE && (
-                      <button
-                        onClick={useMyUrl}
-                        style={{ fontSize: '12px', color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px', whiteSpace: 'nowrap' }}
-                      >
-                        Use my URL
-                      </button>
-                    )}
-                    <button
-                      onClick={() => { setDraft(BASE); setEditing(true); }}
-                      style={{ fontSize: '12px', color: 'var(--text-3)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px', whiteSpace: 'nowrap' }}
-                      onMouseEnter={e => e.currentTarget.style.color = 'var(--text-2)'}
-                      onMouseLeave={e => e.currentTarget.style.color = 'var(--text-3)'}
-                    >
-                      Edit
-                    </button>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 bg-surface border border-border-2 rounded-lg p-3.5 mb-9">
+              <span className="text-[12px] text-text-3 whitespace-nowrap font-mono">Base URL</span>
+              <div className="flex-1 flex items-center gap-2.5 min-w-0">
+                {editing ? (
+                  <div className="flex flex-1 items-center gap-2">
+                    <input
+                      autoFocus
+                      value={draft}
+                      onChange={e => setDraft(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') commitBase(); if (e.key === 'Escape') setEditing(false); }}
+                      placeholder={BASE}
+                      className="flex-1 bg-surface-2 border border-accent rounded-md px-2.5 py-1.25 font-mono text-[12.5px] text-text-1 outline-none min-w-0"
+                    />
+                    <button onClick={commitBase} className="text-[12px] font-semibold text-accent bg-none border-none cursor-pointer px-2 py-1 shrink-0">Save</button>
+                    <button onClick={() => setEditing(false)} className="text-[12px] text-text-3 bg-none border-none cursor-pointer px-2 py-1 shrink-0">Cancel</button>
                   </div>
-                </>
-              )}
+                ) : (
+                  <div className="flex flex-1 items-center gap-2.5 min-w-0">
+                    <code className="flex-1 font-mono text-[12.5px] text-text-2 overflow-hidden text-ellipsis whitespace-nowrap">{BASE}</code>
+                    <div className="flex gap-1 shrink-0">
+                      {ENV_BASE && BASE !== ENV_BASE && (
+                        <button
+                          onClick={useMyUrl}
+                          className="text-[12px] text-accent bg-none border-none cursor-pointer px-2 py-1 whitespace-nowrap"
+                        >
+                          Use my URL
+                        </button>
+                      )}
+                      <button
+                        onClick={() => { setDraft(BASE); setEditing(true); }}
+                        className="text-[12px] text-text-3 bg-none border-none cursor-pointer px-2 py-1 whitespace-nowrap transition-colors hover:text-text-2"
+                      >
+                        Edit
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Getting Started */}
             <section>
               <SectionHeading id="getting-started">Getting Started</SectionHeading>
-              <p style={{ color: 'var(--text-2)', fontSize: '14px', lineHeight: '1.8', marginBottom: '16px' }}>
+              <p className="text-text-2 text-[14px] leading-[1.8] mb-4">
                 SMS Flare turns any Android phone into an SMS gateway. Your dashboard sends jobs to a paired device, which sends the actual SMS messages via the phone's SIM card. No carrier API required.
               </p>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '28px' }}>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-7">
                 {[
                   { step: '1', title: 'Deploy', desc: 'Deploy the Cloudflare Worker backend and open your dashboard.' },
                   { step: '2', title: 'Pair a device', desc: 'Download and install the Android app, then scan the QR code from Settings.' },
                   { step: '3', title: 'Send SMS', desc: 'Use the dashboard, API key, or REST API to send messages.' },
                 ].map(({ step, title, desc }) => (
-                  <div key={step} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '10px', padding: '16px' }}>
-                    <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--accent)', marginBottom: '6px' }}>Step {step}</div>
-                    <div style={{ fontWeight: '600', fontSize: '14px', marginBottom: '6px' }}>{title}</div>
-                    <div style={{ fontSize: '13px', color: 'var(--text-2)', lineHeight: '1.5' }}>{desc}</div>
+                  <div key={step} className="bg-surface border border-border rounded-[10px] p-4">
+                    <div className="font-mono text-[11px] text-accent mb-1.5">Step {step}</div>
+                    <div className="font-semibold text-[14px] mb-1.5">{title}</div>
+                    <div className="text-[13px] text-text-2 leading-[1.5]">{desc}</div>
                     {step === '2' && (
                       <a
                         href="/smsflare.apk"
                         download
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '5px',
-                          marginTop: '10px',
-                          fontFamily: 'DM Mono, monospace',
-                          fontSize: '11px',
-                          color: 'var(--accent)',
-                          background: 'rgba(0,255,127,0.06)',
-                          border: '1px solid rgba(0,255,127,0.2)',
-                          borderRadius: '4px',
-                          padding: '4px 10px',
-                          textDecoration: 'none',
-                        }}
+                        className="inline-flex items-center gap-1.5 mt-2.5 font-mono text-[11px] text-accent bg-[rgba(0,255,127,0.06)] border border-[rgba(0,255,127,0.2)] rounded px-2.5 py-1 text-center no-underline transition-colors hover:bg-[rgba(0,255,127,0.1)]"
                       >
                         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>

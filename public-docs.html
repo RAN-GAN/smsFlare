@@ -45,11 +45,11 @@
       background: rgba(7, 9, 15, 0.85);
       backdrop-filter: blur(12px);
       border-bottom: 1px solid var(--border);
-      padding: 0 32px;
+      padding: 0 24px;
       height: 52px;
       display: flex;
-      alignItems: center;
-      justifyContent: space-between;
+      align-items: center;
+      justify-content: space-between;
     }
 
     .container {
@@ -76,6 +76,39 @@
       min-width: 0;
       padding: 40px 0 80px 48px;
       max-width: 780px;
+    }
+
+    .nav-toggle {
+      display: none;
+      background: transparent;
+      border: none;
+      color: var(--text-2);
+      cursor: pointer;
+      padding: 4px;
+    }
+
+    @media (max-width: 900px) {
+      header { padding: 0 20px; }
+      .container { flex-direction: column; padding: 0 20px; }
+      aside {
+        width: 100%;
+        position: fixed;
+        top: 52px;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: var(--bg);
+        z-index: 40;
+        padding: 24px 20px;
+        height: calc(100vh - 52px);
+        border-right: none;
+        display: none;
+      }
+      aside.open { display: block; }
+      main { padding: 32px 0 60px 0; }
+      .nav-toggle { display: block; }
+      .getting-started-grid { grid-template-columns: 1fr !important; }
+      .hidden-mobile { display: none !important; }
     }
 
     .toc-title {
@@ -233,7 +266,12 @@
     <span style="color: var(--border-2); margin: 0 4px;">/</span>
     <span style="font-size: 13px; color: var(--text-3);">Public Docs</span>
   </div>
-  <a href="index.html" style="font-size: 13px; color: var(--text-3);">← Back to home</a>
+  <div style="display: flex; align-items: center; gap: 16px;">
+    <a href="index.html" style="font-size: 13px; color: var(--text-3);" class="hidden-mobile">← Back to home</a>
+    <button class="nav-toggle" id="nav-toggle">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+    </button>
+  </div>
 </header>
 
 <div class="container">
@@ -260,7 +298,7 @@
       <h2>Getting Started</h2>
       <p>SMS Flare turns any Android phone into an SMS gateway. Your dashboard sends jobs to a paired device, which sends the actual SMS messages via the phone's SIM card. No carrier API required.</p>
       
-      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 28px;">
+      <div class="getting-started-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 28px;">
         <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px;">
           <div style="font-family: 'DM Mono', monospace; font-size: 11px; color: var(--accent); margin-bottom: 6px;">Step 1</div>
           <div style="font-weight: 600; font-size: 14px; margin-bottom: 6px;">Deploy</div>
@@ -334,6 +372,51 @@
     </section>
   </main>
 </div>
+
+<script>
+  const navToggle = document.getElementById('nav-toggle');
+  const aside = document.querySelector('aside');
+  const tocLinks = document.querySelectorAll('.toc-link');
+
+  navToggle.addEventListener('click', () => {
+    aside.classList.toggle('open');
+    const isOpen = aside.classList.contains('open');
+    navToggle.innerHTML = isOpen 
+      ? '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>'
+      : '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>';
+    document.body.style.overflow = isOpen ? 'hidden' : '';
+  });
+
+  tocLinks.forEach(link => {
+    link.addEventListener('click', () => {
+      aside.classList.remove('open');
+      navToggle.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>';
+      document.body.style.overflow = '';
+    });
+  });
+
+  // Active link highlighting
+  const sections = document.querySelectorAll('section, h3');
+  const observerOptions = {
+    root: null,
+    rootMargin: '-20% 0px -70% 0px',
+    threshold: 0
+  };
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const id = entry.target.getAttribute('id');
+        if (!id) return;
+        tocLinks.forEach(link => {
+          link.classList.toggle('active', link.getAttribute('href') === `#${id}`);
+        });
+      }
+    });
+  }, observerOptions);
+
+  sections.forEach(section => observer.observe(section));
+</script>
 
 </body>
 </html>

@@ -1,7 +1,7 @@
 import './globals.css';
 
 export const metadata = {
-  title: 'SMS Flare - Distributed SMS Gateway',
+  title: 'SMS Flare — Distributed SMS Gateway',
   description: 'Send SMS through distributed Android devices',
 };
 

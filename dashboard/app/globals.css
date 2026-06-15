@@ -1,11 +1,42 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-* {
+:root {
+  --bg: #07090F;
+  --surface: #0A0F1A;
+  --surface-2: #0E1520;
+  --surface-3: #132030;
+  --border: #16233A;
+  --border-2: #1E2E45;
+  --accent: #FDBA74;
+  --accent-subtle: rgba(253, 186, 116, 0.07);
+  --accent-muted: rgba(253, 186, 116, 0.14);
+  --accent-glow: rgba(253, 186, 116, 0.3);
+  --text-1: #E4EDF8;
+  --text-2: #8CAABF;
+  --text-3: #567088;
+
+  --status-pending: #F59E0B;
+  --status-pending-bg: rgba(245, 158, 11, 0.08);
+  --status-assigned: #38BDF8;
+  --status-assigned-bg: rgba(56, 189, 248, 0.08);
+  --status-sent: #34D399;
+  --status-sent-bg: rgba(52, 211, 153, 0.08);
+  --status-delivered: #10B981;
+  --status-delivered-bg: rgba(16, 185, 129, 0.08);
+  --status-failed: #F87171;
+  --status-failed-bg: rgba(248, 113, 113, 0.08);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
   margin: 0;
   padding: 0;
-  box-sizing: border-box;
 }
 
 html,
@@ -15,11 +46,361 @@ body {
 }
 
 body {
-  background-color: #f9fafb;
-  color: #1f2937;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  background-color: var(--bg);
+  color: var(--text-1);
+  font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  line-height: 1.55;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-2) var(--surface);
+}
+
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-2);
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-3);
+}
+
+code,
+pre,
+.mono {
+  font-family: 'DM Mono', 'Cascadia Code', 'Fira Code', monospace;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+  font-family: inherit;
+}
+
+input,
+textarea,
+select {
+  font-family: inherit;
+}
+
+/* Base input style */
+.sf-input {
+  width: 100%;
+  background: var(--surface-2);
+  border: 1px solid var(--border-2);
+  border-radius: 6px;
+  color: var(--text-1);
+  padding: 9px 13px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.sf-input::placeholder {
+  color: var(--text-3);
+}
+
+.sf-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-subtle);
+}
+
+/* Base button styles */
+.sf-btn-primary {
+  background: var(--accent);
+  color: #0A0800;
+  border: none;
+  border-radius: 6px;
+  padding: 9px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  transition: opacity 0.15s;
+}
+
+.sf-btn-primary:hover {
+  opacity: 0.9;
+}
+
+.sf-btn-primary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.sf-btn-ghost {
+  background: transparent;
+  border: 1px solid var(--border-2);
+  border-radius: 6px;
+  color: var(--text-2);
+  padding: 8px 16px;
+  font-size: 13.5px;
+  font-weight: 500;
+  transition: all 0.15s;
+}
+
+.sf-btn-ghost:hover {
+  border-color: var(--border-2);
+  color: var(--text-1);
+  background: var(--surface-2);
+}
+
+.sf-btn-ghost:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.sf-btn-danger {
+  background: rgba(248, 113, 113, 0.1);
+  border: 1px solid rgba(248, 113, 113, 0.25);
+  border-radius: 6px;
+  color: #F87171;
+  padding: 8px 16px;
+  font-size: 13.5px;
+  font-weight: 500;
+  transition: all 0.15s;
+}
+
+.sf-btn-danger:hover {
+  background: rgba(248, 113, 113, 0.18);
+}
+
+.sf-btn-danger:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Card */
+.sf-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 20px;
+}
+
+/* Label */
+.sf-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--text-2);
+  margin-bottom: 6px;
+}
+
+/* Status badges */
+.sf-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.sf-badge-pending {
+  background: var(--status-pending-bg);
+  color: var(--status-pending);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.sf-badge-assigned {
+  background: var(--status-assigned-bg);
+  color: var(--status-assigned);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+}
+
+.sf-badge-sent {
+  background: var(--status-sent-bg);
+  color: var(--status-sent);
+  border: 1px solid rgba(52, 211, 153, 0.2);
+}
+
+.sf-badge-delivered {
+  background: var(--status-delivered-bg);
+  color: var(--status-delivered);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.sf-badge-failed {
+  background: var(--status-failed-bg);
+  color: var(--status-failed);
+  border: 1px solid rgba(248, 113, 113, 0.2);
+}
+
+.sf-badge-online {
+  background: rgba(52, 211, 153, 0.08);
+  color: #34D399;
+  border: 1px solid rgba(52, 211, 153, 0.2);
+}
+
+.sf-badge-offline {
+  background: rgba(98, 116, 144, 0.1);
+  color: var(--text-2);
+  border: 1px solid var(--border);
+}
+
+/* Divider */
+.sf-divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 0;
+}
+
+/* Section title */
+.sf-section-title {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-2);
+  margin-bottom: 14px;
+}
+
+/* Table */
+.sf-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.sf-table th {
+  padding: 10px 16px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.sf-table td {
+  padding: 12px 16px;
+  font-size: 13.5px;
+  color: var(--text-2);
+  border-bottom: 1px solid var(--border);
+}
+
+.sf-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.sf-table tbody tr {
+  transition: background 0.1s;
+}
+
+.sf-table tbody tr:hover {
+  background: var(--surface-2);
+}
+
+/* Error/success alerts */
+.sf-alert-error {
+  background: rgba(248, 113, 113, 0.07);
+  border: 1px solid rgba(248, 113, 113, 0.2);
+  border-radius: 6px;
+  color: #F87171;
+  padding: 11px 14px;
+  font-size: 13.5px;
+}
+
+.sf-alert-success {
+  background: rgba(52, 211, 153, 0.07);
+  border: 1px solid rgba(52, 211, 153, 0.2);
+  border-radius: 6px;
+  color: #34D399;
+  padding: 11px 14px;
+  font-size: 13.5px;
+}
+
+/* Code block */
+.sf-code-block {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 14px 16px;
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  color: var(--text-2);
+  overflow-x: auto;
+  white-space: pre;
+  line-height: 1.7;
+}
+
+/* Page header */
+.sf-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 32px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sf-page-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-1);
+  letter-spacing: -0.01em;
+}
+
+.sf-page-subtitle {
+  font-size: 13px;
+  color: var(--text-2);
+  margin-top: 2px;
+}
+
+/* Page content area */
+.sf-page-content {
+  padding: 28px 32px;
+}
+
+/* Stat card */
+.sf-stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 18px 20px;
+}
+
+.sf-stat-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  margin-bottom: 8px;
+}
+
+.sf-stat-value {
+  font-size: 26px;
+  font-weight: 600;
+  color: var(--text-1);
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.sf-stat-sub {
+  font-size: 12px;
+  color: var(--text-3);
+  margin-top: 4px;
 }

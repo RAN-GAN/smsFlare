@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import useAuthStore from '../../store/auth.js';
 
@@ -17,7 +16,6 @@ export default function LoginPage() {
     e.preventDefault();
     setError('');
     setLoading(true);
-
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8787';
       await login(email, password, apiUrl);
@@ -30,54 +28,141 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="w-full max-w-md">
-        <div className="bg-white rounded-lg shadow-lg p-8">
-          <h1 className="text-3xl font-bold text-center text-gray-900 mb-2">SMS Flare</h1>
-          <p className="text-center text-gray-600 mb-8">Distributed SMS Gateway</p>
+    <div style={{
+      minHeight: '100vh',
+      background: 'var(--bg)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '24px',
+      position: 'relative',
+      overflow: 'hidden',
+    }}>
+      {/* Background grid pattern */}
+      <div style={{
+        position: 'absolute',
+        inset: 0,
+        backgroundImage: `
+          linear-gradient(var(--border) 1px, transparent 1px),
+          linear-gradient(90deg, var(--border) 1px, transparent 1px)
+        `,
+        backgroundSize: '48px 48px',
+        opacity: 0.4,
+        pointerEvents: 'none',
+      }} />
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+      {/* Radial glow */}
+      <div style={{
+        position: 'absolute',
+        top: '30%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        width: '500px',
+        height: '400px',
+        background: 'radial-gradient(ellipse, rgba(253, 186, 116, 0.04) 0%, transparent 70%)',
+        pointerEvents: 'none',
+      }} />
+
+      <div style={{ position: 'relative', width: '100%', maxWidth: '400px' }}>
+        {/* Logo mark */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          marginBottom: '32px',
+          justifyContent: 'center',
+        }}>
+          <div style={{
+            width: '8px',
+            height: '8px',
+            borderRadius: '50%',
+            background: 'var(--accent)',
+            boxShadow: '0 0 12px var(--accent-glow)',
+          }} />
+          <span style={{
+            fontFamily: 'DM Mono, monospace',
+            fontSize: '13px',
+            fontWeight: '500',
+            letterSpacing: '0.12em',
+            color: 'var(--text-1)',
+          }}>
+            SMSFLARE
+          </span>
+        </div>
+
+        {/* Card */}
+        <div style={{
+          background: 'var(--surface)',
+          border: '1px solid var(--border)',
+          borderRadius: '12px',
+          padding: '32px',
+        }}>
+          <h1 style={{
+            fontSize: '20px',
+            fontWeight: '600',
+            color: 'var(--text-1)',
+            marginBottom: '4px',
+            letterSpacing: '-0.015em',
+          }}>
+            Welcome back
+          </h1>
+          <p style={{
+            fontSize: '13.5px',
+            color: 'var(--text-2)',
+            marginBottom: '28px',
+          }}>
+            Sign in to your instance
+          </p>
+
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
+              <label className="sf-label">Email</label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="your@email.com"
+                placeholder="admin@example.com"
+                className="sf-input"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
+              <label className="sf-label">Password</label>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="••••••••"
+                className="sf-input"
               />
             </div>
 
-            {error && <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">{error}</div>}
+            {error && (
+              <div className="sf-alert-error">{error}</div>
+            )}
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold py-2 px-4 rounded-lg transition duration-200"
+              className="sf-btn-primary"
+              style={{ width: '100%', padding: '10px', marginTop: '4px' }}
             >
-              {loading ? 'Logging in...' : 'Login'}
+              {loading ? 'Signing in...' : 'Sign in'}
             </button>
           </form>
-
-          <div className="mt-6 text-center">
-            <p className="text-xs text-gray-400">
-              SMS Flare — self-hosted instance
-            </p>
-          </div>
         </div>
+
+        <p style={{
+          textAlign: 'center',
+          marginTop: '20px',
+          fontSize: '12px',
+          color: 'var(--text-3)',
+          fontFamily: 'DM Mono, monospace',
+        }}>
+          self-hosted instance
+        </p>
       </div>
     </div>
   );

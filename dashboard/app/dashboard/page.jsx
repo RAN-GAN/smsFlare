@@ -2,27 +2,83 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import useAuthStore from '../store/auth.js';
+import AppLayout from '../components/AppLayout.jsx';
 import { smsApi, deviceMgmtApi } from '../lib/api';
-import Cookies from 'js-cookie';
+
+function statusClass(status) {
+  switch (status) {
+    case 'pending':   return 'sf-badge sf-badge-pending';
+    case 'assigned':  return 'sf-badge sf-badge-assigned';
+    case 'sent':      return 'sf-badge sf-badge-sent';
+    case 'delivered': return 'sf-badge sf-badge-delivered';
+    case 'failed':    return 'sf-badge sf-badge-failed';
+    default:          return 'sf-badge';
+  }
+}
+
+function formatTime(ts) {
+  const d = new Date(ts * 1000);
+  return d.toLocaleString('en-US', {
+    month: 'short', day: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+    hour12: false,
+  });
+}
+
+function IconDevice() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <rect width="14" height="20" x="5" y="2" rx="2" />
+      <path d="M12 18h.01" />
+    </svg>
+  );
+}
+
+function IconTrash() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" />
+      <path d="M10 11v6M14 11v6" />
+    </svg>
+  );
+}
+
+function IconBattery() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="7" width="18" height="10" rx="2" />
+      <path d="M22 11v2" />
+      <path d="M6 11h6" />
+    </svg>
+  );
+}
+
+function StatCard({ label, value, sub }) {
+  return (
+    <div className="sf-stat-card">
+      <div className="sf-stat-label">{label}</div>
+      <div className="sf-stat-value">{value}</div>
+      {sub && <div className="sf-stat-sub">{sub}</div>}
+    </div>
+  );
+}
 
 export default function DashboardPage() {
   const [jobs, setJobs] = useState([]);
   const [devices, setDevices] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [backendStatus, setBackendStatus] = useState(null); // null | 'online' | 'offline'
-  const router = useRouter();
-  const logout = useAuthStore((state) => state.logout);
+  const [backendStatus, setBackendStatus] = useState(null);
 
   const loadData = useCallback(async () => {
     try {
-      const [jobsData, devicesData] = await Promise.all([smsApi.getJobs(10, 0), smsApi.getDevices()]);
+      const [jobsData, devicesData] = await Promise.all([
+        smsApi.getJobs(20, 0),
+        smsApi.getDevices(),
+      ]);
       setJobs(jobsData.jobs || []);
       setDevices(devicesData.devices || []);
       setBackendStatus('online');
     } catch (err) {
-      console.error('Failed to load data:', err);
       setBackendStatus('offline');
     } finally {
       setLoading(false);
@@ -35,11 +91,6 @@ export default function DashboardPage() {
     return () => clearInterval(interval);
   }, [loadData]);
 
-  const handleLogout = () => {
-    logout();
-    router.push('/auth/login');
-  };
-
   const handleDeregisterDevice = async (deviceId) => {
     if (!confirm('Remove this device? It will stop receiving SMS jobs.')) return;
     try {
@@ -50,144 +101,304 @@ export default function DashboardPage() {
     }
   };
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'assigned':
-        return 'bg-blue-100 text-blue-800';
-      case 'sent':
-        return 'bg-green-100 text-green-800';
-      case 'delivered':
-        return 'bg-green-100 text-green-800';
-      case 'failed':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const formatTime = (timestamp) => {
-    return new Date(timestamp * 1000).toLocaleString();
-  };
+  const onlineDevices = devices.filter((d) => d.online);
+  const pendingJobs = jobs.filter((j) => j.status === 'pending' || j.status === 'assigned');
+  const deliveredJobs = jobs.filter((j) => j.status === 'delivered' || j.status === 'sent');
+  const successRate = jobs.length > 0
+    ? Math.round((deliveredJobs.length / jobs.length) * 100)
+    : 0;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-gray-900">SMS Flare Dashboard</h1>
-            {backendStatus && (
-              <span className={`flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full ${
-                backendStatus === 'online'
-                  ? 'bg-green-100 text-green-700'
-                  : 'bg-red-100 text-red-700'
-              }`}>
-                <span className={`w-1.5 h-1.5 rounded-full ${
-                  backendStatus === 'online' ? 'bg-green-500' : 'bg-red-500'
-                }`} />
-                {backendStatus === 'online' ? 'Backend online' : 'Backend unreachable'}
-              </span>
-            )}
-          </div>
-          <div className="flex gap-4">
-            <Link href="/send" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-              Send SMS
-            </Link>
-            <Link href="/settings" className="px-4 py-2 bg-gray-200 text-gray-900 rounded-lg hover:bg-gray-300">
-              Settings
-            </Link>
-            <button
-              onClick={handleLogout}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-            >
-              Logout
-            </button>
-          </div>
+    <AppLayout>
+      {/* Page header */}
+      <div className="sf-page-header">
+        <div>
+          <h1 className="sf-page-title">Overview</h1>
+          <p className="sf-page-subtitle">SMS gateway status and recent activity</p>
         </div>
-      </header>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {backendStatus && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '7px',
+              padding: '5px 11px',
+              borderRadius: '6px',
+              background: backendStatus === 'online' ? 'rgba(52, 211, 153, 0.07)' : 'rgba(248, 113, 113, 0.07)',
+              border: `1px solid ${backendStatus === 'online' ? 'rgba(52, 211, 153, 0.2)' : 'rgba(248, 113, 113, 0.2)'}`,
+            }}>
+              <div style={{
+                width: '6px',
+                height: '6px',
+                borderRadius: '50%',
+                background: backendStatus === 'online' ? '#34D399' : '#F87171',
+                boxShadow: backendStatus === 'online' ? '0 0 6px rgba(52,211,153,0.6)' : '0 0 6px rgba(248,113,113,0.6)',
+              }} />
+              <span style={{
+                fontSize: '12px',
+                color: backendStatus === 'online' ? '#34D399' : '#F87171',
+                fontFamily: 'DM Mono, monospace',
+                fontWeight: '500',
+              }}>
+                {backendStatus === 'online' ? 'Connected' : 'Unreachable'}
+              </span>
+            </div>
+          )}
+          <Link href="/send/" className="sf-btn-primary" style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '7px',
+            padding: '8px 16px',
+            fontSize: '13.5px',
+          }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="m22 2-7 20-4-9-9-4Z" /><path d="M22 2 11 13" />
+            </svg>
+            Send SMS
+          </Link>
+        </div>
+      </div>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Devices Section */}
-        <section className="mb-8">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Online Devices</h2>
+      <div className="sf-page-content" style={{ flex: 1 }}>
+        {/* Stats row */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(4, 1fr)',
+          gap: '14px',
+          marginBottom: '28px',
+        }}>
+          <StatCard label="Total Jobs" value={jobs.length} sub="fetched" />
+          <StatCard label="Active Devices" value={onlineDevices.length} sub={`of ${devices.length} registered`} />
+          <StatCard label="Queued" value={pendingJobs.length} sub="pending / assigned" />
+          <StatCard label="Success Rate" value={`${successRate}%`} sub="sent + delivered" />
+        </div>
+
+        {/* Devices */}
+        <div style={{ marginBottom: '28px' }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '14px',
+          }}>
+            <h2 className="sf-section-title" style={{ marginBottom: 0 }}>Registered Devices</h2>
+            <Link href="/settings/" style={{
+              fontSize: '12px',
+              color: 'var(--text-2)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              transition: 'color 0.12s',
+            }}>
+              Pair new device
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M5 12h14M12 5l7 7-7 7" />
+              </svg>
+            </Link>
+          </div>
+
           {devices.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+              gap: '12px',
+            }}>
               {devices.map((device) => (
-                <div key={device.id} className="bg-white rounded-lg shadow p-6">
-                  <div className="flex justify-between items-start mb-3">
-                    <h3 className="font-semibold text-gray-900">{device.device_model || 'Unknown Device'}</h3>
-                    <span
-                      className={`px-2 py-1 rounded text-xs font-medium ${
-                        device.online ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                      }`}
-                    >
-                      {device.online ? 'Online' : 'Offline'}
+                <div key={device.id} style={{
+                  background: 'var(--surface)',
+                  border: '1px solid var(--border)',
+                  borderRadius: '10px',
+                  padding: '16px',
+                }}>
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'flex-start',
+                    marginBottom: '12px',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ color: 'var(--text-3)' }}><IconDevice /></div>
+                      <span style={{
+                        fontSize: '13.5px',
+                        fontWeight: '500',
+                        color: 'var(--text-1)',
+                        maxWidth: '130px',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}>
+                        {device.device_model || 'Unknown Device'}
+                      </span>
+                    </div>
+                    <span className={device.online ? 'sf-badge sf-badge-online' : 'sf-badge sf-badge-offline'}>
+                      {device.online ? 'online' : 'offline'}
                     </span>
                   </div>
-                  <div className="space-y-2 text-sm mb-4">
-                    <p className="text-gray-600">
-                      <strong>Android:</strong> {device.android_version || 'N/A'}
-                    </p>
-                    <p className="text-gray-600">
-                      <strong>Battery:</strong> {device.battery_level || 'N/A'}%
-                    </p>
-                    <p className="text-gray-600">
-                      <strong>Phone:</strong> {device.phone_number || 'N/A'}
-                    </p>
+
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '5px',
+                    marginBottom: '14px',
+                  }}>
+                    {device.phone_number && (
+                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                        <span style={{ fontSize: '11px', color: 'var(--text-3)', fontFamily: 'DM Mono, monospace', minWidth: '56px' }}>PHONE</span>
+                        <span style={{ fontSize: '12.5px', color: 'var(--text-2)', fontFamily: 'DM Mono, monospace' }}>
+                          {device.phone_number}
+                        </span>
+                      </div>
+                    )}
+                    {device.android_version && (
+                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                        <span style={{ fontSize: '11px', color: 'var(--text-3)', fontFamily: 'DM Mono, monospace', minWidth: '56px' }}>ANDROID</span>
+                        <span style={{ fontSize: '12.5px', color: 'var(--text-2)' }}>{device.android_version}</span>
+                      </div>
+                    )}
+                    {device.battery_level !== undefined && device.battery_level !== null && (
+                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                        <span style={{ fontSize: '11px', color: 'var(--text-3)', fontFamily: 'DM Mono, monospace', minWidth: '56px' }}>BATTERY</span>
+                        <span style={{
+                          fontSize: '12.5px',
+                          color: device.battery_level < 20 ? 'var(--status-failed)' : 'var(--text-2)',
+                        }}>
+                          {device.battery_level}%
+                        </span>
+                      </div>
+                    )}
                   </div>
+
                   <button
                     onClick={() => handleDeregisterDevice(device.id)}
-                    className="w-full text-xs text-red-500 hover:text-red-700 hover:bg-red-50 border border-red-200 rounded py-1.5 transition duration-150"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      background: 'transparent',
+                      border: '1px solid var(--border)',
+                      borderRadius: '5px',
+                      color: 'var(--text-3)',
+                      fontSize: '12px',
+                      padding: '5px 10px',
+                      cursor: 'pointer',
+                      transition: 'all 0.12s',
+                      width: '100%',
+                      justifyContent: 'center',
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.borderColor = 'rgba(248, 113, 113, 0.3)';
+                      e.currentTarget.style.color = '#F87171';
+                      e.currentTarget.style.background = 'rgba(248, 113, 113, 0.05)';
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.borderColor = 'var(--border)';
+                      e.currentTarget.style.color = 'var(--text-3)';
+                      e.currentTarget.style.background = 'transparent';
+                    }}
                   >
+                    <IconTrash />
                     Remove device
                   </button>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="bg-white rounded-lg shadow p-8 text-center">
-              <p className="text-gray-600 mb-4">No devices registered yet</p>
-              <Link href="/settings" className="text-blue-600 hover:text-blue-700 font-semibold">
+            <div style={{
+              background: 'var(--surface)',
+              border: '1px solid var(--border)',
+              borderRadius: '10px',
+              padding: '32px',
+              textAlign: 'center',
+            }}>
+              <p style={{ color: 'var(--text-2)', fontSize: '13.5px', marginBottom: '10px' }}>
+                No devices registered yet
+              </p>
+              <Link href="/settings/" style={{
+                fontSize: '13px',
+                fontWeight: '500',
+                color: 'var(--accent)',
+              }}>
                 Generate pairing token
               </Link>
             </div>
           )}
-        </section>
+        </div>
 
-        {/* Jobs Section */}
-        <section>
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Recent SMS Jobs</h2>
-          {loading ? (
-            <div className="text-center py-8">
-              <p className="text-gray-600">Loading...</p>
+        {/* Jobs table */}
+        <div>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '14px',
+          }}>
+            <h2 className="sf-section-title" style={{ marginBottom: 0 }}>Recent Jobs</h2>
+          </div>
+
+          {loading && jobs.length === 0 ? (
+            <div style={{
+              background: 'var(--surface)',
+              border: '1px solid var(--border)',
+              borderRadius: '10px',
+              padding: '32px',
+              textAlign: 'center',
+            }}>
+              <div style={{
+                width: '18px',
+                height: '18px',
+                border: '2px solid var(--border-2)',
+                borderTopColor: 'var(--accent)',
+                borderRadius: '50%',
+                animation: 'spin 0.8s linear infinite',
+                margin: '0 auto 12px',
+              }} />
+              <p style={{ color: 'var(--text-3)', fontSize: '13px' }}>Loading jobs...</p>
+              <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
             </div>
           ) : jobs.length > 0 ? (
-            <div className="bg-white rounded-lg shadow overflow-hidden">
-              <table className="w-full">
-                <thead className="bg-gray-100 border-b border-gray-200">
+            <div style={{
+              background: 'var(--surface)',
+              border: '1px solid var(--border)',
+              borderRadius: '10px',
+              overflow: 'hidden',
+            }}>
+              <table className="sf-table">
+                <thead>
                   <tr>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Recipient</th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Message</th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Status</th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Created</th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Action</th>
+                    <th>Recipient</th>
+                    <th>Message</th>
+                    <th>Status</th>
+                    <th>Created</th>
+                    <th></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
+                <tbody>
                   {jobs.map((job) => (
-                    <tr key={job.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 text-sm text-gray-900">{job.recipient}</td>
-                      <td className="px-6 py-4 text-sm text-gray-600 max-w-xs truncate">{job.message}</td>
-                      <td className="px-6 py-4 text-sm">
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(job.status)}`}>
-                          {job.status}
-                        </span>
+                    <tr key={job.id}>
+                      <td style={{ color: 'var(--text-1)', fontFamily: 'DM Mono, monospace', fontSize: '13px' }}>
+                        {job.recipient}
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-600">{formatTime(job.created_at)}</td>
-                      <td className="px-6 py-4 text-sm">
-                        <Link href={`/jobs/?id=${job.id}`} className="text-blue-600 hover:text-blue-700 font-semibold">
+                      <td style={{
+                        maxWidth: '280px',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}>
+                        {job.message}
+                      </td>
+                      <td>
+                        <span className={statusClass(job.status)}>{job.status}</span>
+                      </td>
+                      <td style={{ fontFamily: 'DM Mono, monospace', fontSize: '12px' }}>
+                        {formatTime(job.created_at)}
+                      </td>
+                      <td>
+                        <Link href={`/jobs/?id=${job.id}`} style={{
+                          fontSize: '12px',
+                          fontWeight: '500',
+                          color: 'var(--text-2)',
+                          transition: 'color 0.12s',
+                        }}>
                           View
                         </Link>
                       </td>
@@ -197,15 +408,27 @@ export default function DashboardPage() {
               </table>
             </div>
           ) : (
-            <div className="bg-white rounded-lg shadow p-8 text-center">
-              <p className="text-gray-600 mb-4">No SMS jobs yet</p>
-              <Link href="/send" className="text-blue-600 hover:text-blue-700 font-semibold">
+            <div style={{
+              background: 'var(--surface)',
+              border: '1px solid var(--border)',
+              borderRadius: '10px',
+              padding: '32px',
+              textAlign: 'center',
+            }}>
+              <p style={{ color: 'var(--text-2)', fontSize: '13.5px', marginBottom: '10px' }}>
+                No SMS jobs yet
+              </p>
+              <Link href="/send/" style={{
+                fontSize: '13px',
+                fontWeight: '500',
+                color: 'var(--accent)',
+              }}>
                 Send your first SMS
               </Link>
             </div>
           )}
-        </section>
-      </main>
-    </div>
+        </div>
+      </div>
+    </AppLayout>
   );
 }

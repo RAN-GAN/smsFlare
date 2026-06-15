@@ -3,7 +3,49 @@
 import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import AppLayout from '../components/AppLayout.jsx';
 import { smsApi } from '../lib/api';
+
+function statusClass(status) {
+  switch (status) {
+    case 'pending':   return 'sf-badge sf-badge-pending';
+    case 'assigned':  return 'sf-badge sf-badge-assigned';
+    case 'sent':      return 'sf-badge sf-badge-sent';
+    case 'delivered': return 'sf-badge sf-badge-delivered';
+    case 'failed':    return 'sf-badge sf-badge-failed';
+    default:          return 'sf-badge';
+  }
+}
+
+function formatTime(ts) {
+  return new Date(ts * 1000).toLocaleString('en-US', {
+    month: 'short', day: 'numeric', year: 'numeric',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hour12: false,
+  });
+}
+
+function TimelineDot({ status }) {
+  const colors = {
+    pending: 'var(--status-pending)',
+    assigned: 'var(--status-assigned)',
+    sent: 'var(--status-sent)',
+    delivered: 'var(--status-delivered)',
+    failed: 'var(--status-failed)',
+  };
+  const color = colors[status] || 'var(--text-3)';
+  return (
+    <div style={{
+      width: '8px',
+      height: '8px',
+      borderRadius: '50%',
+      background: color,
+      boxShadow: `0 0 6px ${color}`,
+      flexShrink: 0,
+      marginTop: '3px',
+    }} />
+  );
+}
 
 function JobDetailContent() {
   const [job, setJob] = useState(null);
@@ -16,7 +58,7 @@ function JobDetailContent() {
   useEffect(() => {
     if (!jobId) return;
     loadJob();
-    const interval = setInterval(loadJob, 3000);
+    const interval = setInterval(loadJob, 5000);
     return () => clearInterval(interval);
   }, [jobId]);
 
@@ -32,100 +74,181 @@ function JobDetailContent() {
     }
   };
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'pending':   return 'bg-yellow-100 text-yellow-800';
-      case 'assigned':  return 'bg-blue-100 text-blue-800';
-      case 'sent':
-      case 'delivered': return 'bg-green-100 text-green-800';
-      case 'failed':    return 'bg-red-100 text-red-800';
-      default:          return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const formatTime = (timestamp) => new Date(timestamp * 1000).toLocaleString();
-
   if (!jobId) {
     return (
-      <main className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg">No job ID specified.</div>
-      </main>
+      <div className="sf-page-content">
+        <div className="sf-alert-error">No job ID specified.</div>
+      </div>
     );
   }
 
   if (loading && !job) {
     return (
-      <main className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <p className="text-gray-600">Loading...</p>
-      </main>
+      <div className="sf-page-content" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div style={{
+          width: '16px',
+          height: '16px',
+          border: '2px solid var(--border-2)',
+          borderTopColor: 'var(--accent)',
+          borderRadius: '50%',
+          animation: 'spin 0.8s linear infinite',
+        }} />
+        <span style={{ color: 'var(--text-2)', fontSize: '13.5px' }}>Loading job...</span>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
     );
   }
 
   if (error) {
     return (
-      <main className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg">{error}</div>
-      </main>
+      <div className="sf-page-content">
+        <div className="sf-alert-error">{error}</div>
+      </div>
     );
   }
 
   return (
-    <main className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="sf-page-content">
       {job && (
-        <div className="space-y-6">
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex justify-between items-start mb-4">
-              <h1 className="text-2xl font-bold text-gray-900">SMS Job Details</h1>
-              <span className={`px-4 py-2 rounded-lg font-semibold text-sm ${getStatusColor(job.status)}`}>
-                {job.status.toUpperCase()}
+        <div style={{ maxWidth: '560px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {/* Job card */}
+          <div style={{
+            background: 'var(--surface)',
+            border: '1px solid var(--border)',
+            borderRadius: '10px',
+            overflow: 'hidden',
+          }}>
+            {/* Card header */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '16px 20px',
+              borderBottom: '1px solid var(--border)',
+            }}>
+              <span style={{
+                fontFamily: 'DM Mono, monospace',
+                fontSize: '12px',
+                color: 'var(--text-3)',
+              }}>
+                {job.id}
               </span>
+              <span className={statusClass(job.status)}>{job.status}</span>
             </div>
 
-            <div className="space-y-4">
+            {/* Card body */}
+            <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Job ID</label>
-                <p className="text-gray-900 font-mono text-sm">{job.id}</p>
+                <div className="sf-label">Recipient</div>
+                <div style={{
+                  fontFamily: 'DM Mono, monospace',
+                  fontSize: '15px',
+                  fontWeight: '500',
+                  color: 'var(--text-1)',
+                }}>
+                  {job.recipient}
+                </div>
               </div>
+
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Recipient</label>
-                <p className="text-gray-900">{job.recipient}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Message</label>
-                <p className="text-gray-900 whitespace-pre-wrap bg-gray-50 p-3 rounded border border-gray-200">
+                <div className="sf-label">Message</div>
+                <div style={{
+                  background: 'var(--surface-2)',
+                  border: '1px solid var(--border)',
+                  borderRadius: '6px',
+                  padding: '12px 14px',
+                  fontSize: '13.5px',
+                  color: 'var(--text-1)',
+                  lineHeight: '1.55',
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word',
+                }}>
                   {job.message}
-                </p>
+                </div>
               </div>
-              <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-200">
+
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: '16px',
+                paddingTop: '4px',
+                borderTop: '1px solid var(--border)',
+              }}>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Created</label>
-                  <p className="text-gray-900 text-sm">{formatTime(job.created_at)}</p>
+                  <div className="sf-label">Created</div>
+                  <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '12.5px', color: 'var(--text-2)' }}>
+                    {formatTime(job.created_at)}
+                  </div>
                 </div>
                 {job.delivered_at && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Delivered</label>
-                    <p className="text-gray-900 text-sm">{formatTime(job.delivered_at)}</p>
+                    <div className="sf-label">Delivered</div>
+                    <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '12.5px', color: 'var(--status-delivered)' }}>
+                      {formatTime(job.delivered_at)}
+                    </div>
                   </div>
                 )}
               </div>
             </div>
           </div>
 
+          {/* Timeline */}
           {logs.length > 0 && (
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Delivery Timeline</h2>
-              <div className="space-y-3">
+            <div style={{
+              background: 'var(--surface)',
+              border: '1px solid var(--border)',
+              borderRadius: '10px',
+              overflow: 'hidden',
+            }}>
+              <div style={{
+                padding: '14px 20px',
+                borderBottom: '1px solid var(--border)',
+              }}>
+                <h2 style={{
+                  fontSize: '12px',
+                  fontWeight: '600',
+                  letterSpacing: '0.06em',
+                  textTransform: 'uppercase',
+                  color: 'var(--text-3)',
+                }}>
+                  Delivery Timeline
+                </h2>
+              </div>
+              <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '0' }}>
                 {logs.map((log, index) => (
-                  <div key={index} className="flex gap-4 pb-3 border-b border-gray-200 last:border-b-0">
-                    <div className="flex-shrink-0">
-                      <span className={`inline-block px-3 py-1 rounded text-xs font-medium ${getStatusColor(log.status)}`}>
-                        {log.status}
-                      </span>
-                    </div>
-                    <div className="flex-grow">
-                      <p className="text-sm text-gray-600">{formatTime(log.timestamp)}</p>
+                  <div key={index} style={{
+                    display: 'flex',
+                    gap: '14px',
+                    paddingBottom: index < logs.length - 1 ? '16px' : '0',
+                    position: 'relative',
+                  }}>
+                    {/* Vertical line */}
+                    {index < logs.length - 1 && (
+                      <div style={{
+                        position: 'absolute',
+                        left: '3.5px',
+                        top: '11px',
+                        bottom: '0',
+                        width: '1px',
+                        background: 'var(--border)',
+                      }} />
+                    )}
+                    <TimelineDot status={log.status} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '2px' }}>
+                        <span className={statusClass(log.status)}>{log.status}</span>
+                        <span style={{
+                          fontFamily: 'DM Mono, monospace',
+                          fontSize: '11.5px',
+                          color: 'var(--text-3)',
+                        }}>
+                          {formatTime(log.timestamp)}
+                        </span>
+                      </div>
                       {log.error_message && (
-                        <p className="text-sm text-red-600 mt-1">Error: {log.error_message}</p>
+                        <p style={{ fontSize: '12.5px', color: 'var(--status-failed)', marginTop: '3px' }}>
+                          {log.error_message}
+                        </p>
                       )}
                     </div>
                   </div>
@@ -135,23 +258,40 @@ function JobDetailContent() {
           )}
         </div>
       )}
-    </main>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
   );
 }
 
 export default function JobDetailPage() {
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <Link href="/dashboard/" className="text-blue-600 hover:text-blue-700 font-semibold">
-            ← Back to Dashboard
-          </Link>
+    <AppLayout>
+      <div className="sf-page-header">
+        <div>
+          <h1 className="sf-page-title">Job Detail</h1>
+          <p className="sf-page-subtitle">SMS delivery status and timeline</p>
         </div>
-      </header>
-      <Suspense fallback={<main className="max-w-2xl mx-auto px-4 py-8"><p className="text-gray-600">Loading...</p></main>}>
+        <Link href="/dashboard/" style={{
+          fontSize: '13px',
+          color: 'var(--text-2)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '5px',
+          transition: 'color 0.12s',
+        }}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="m19 12H5M12 5l-7 7 7 7" />
+          </svg>
+          Back to Overview
+        </Link>
+      </div>
+      <Suspense fallback={
+        <div className="sf-page-content" style={{ color: 'var(--text-2)', fontSize: '13.5px' }}>
+          Loading...
+        </div>
+      }>
         <JobDetailContent />
       </Suspense>
-    </div>
+    </AppLayout>
   );
 }

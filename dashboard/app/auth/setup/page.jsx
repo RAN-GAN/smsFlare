@@ -17,7 +17,6 @@ export default function SetupPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-
     if (password !== confirm) {
       setError('Passwords do not match');
       return;
@@ -26,7 +25,6 @@ export default function SetupPage() {
       setError('Password must be at least 8 characters');
       return;
     }
-
     setLoading(true);
     try {
       const res = await fetch(`${API_BASE_URL}/auth/setup`, {
@@ -37,7 +35,6 @@ export default function SetupPage() {
       const data = await res.json();
       if (!res.ok) {
         if (res.status === 403) {
-          // Already configured — send to login
           router.push('/auth/login/');
           return;
         }
@@ -53,61 +50,163 @@ export default function SetupPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="w-full max-w-md">
-        <div className="bg-white rounded-lg shadow-lg p-8">
-          <h1 className="text-3xl font-bold text-center text-gray-900 mb-2">SMS Flare</h1>
-          <p className="text-center text-gray-600 mb-1">First-time setup</p>
-          <p className="text-center text-sm text-gray-500 mb-8">
-            Create the admin account for this instance. This page is only available once.
+    <div style={{
+      minHeight: '100vh',
+      background: 'var(--bg)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '24px',
+      position: 'relative',
+      overflow: 'hidden',
+    }}>
+      {/* Background grid */}
+      <div style={{
+        position: 'absolute',
+        inset: 0,
+        backgroundImage: `
+          linear-gradient(var(--border) 1px, transparent 1px),
+          linear-gradient(90deg, var(--border) 1px, transparent 1px)
+        `,
+        backgroundSize: '48px 48px',
+        opacity: 0.4,
+        pointerEvents: 'none',
+      }} />
+
+      <div style={{
+        position: 'absolute',
+        top: '30%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        width: '500px',
+        height: '400px',
+        background: 'radial-gradient(ellipse, rgba(253, 186, 116, 0.04) 0%, transparent 70%)',
+        pointerEvents: 'none',
+      }} />
+
+      <div style={{ position: 'relative', width: '100%', maxWidth: '420px' }}>
+        {/* Logo */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          marginBottom: '32px',
+          justifyContent: 'center',
+        }}>
+          <div style={{
+            width: '8px',
+            height: '8px',
+            borderRadius: '50%',
+            background: 'var(--accent)',
+            boxShadow: '0 0 12px var(--accent-glow)',
+          }} />
+          <span style={{
+            fontFamily: 'DM Mono, monospace',
+            fontSize: '13px',
+            fontWeight: '500',
+            letterSpacing: '0.12em',
+            color: 'var(--text-1)',
+          }}>
+            SMSFLARE
+          </span>
+        </div>
+
+        {/* Card */}
+        <div style={{
+          background: 'var(--surface)',
+          border: '1px solid var(--border)',
+          borderRadius: '12px',
+          padding: '32px',
+        }}>
+          {/* Setup badge */}
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            background: 'var(--accent-subtle)',
+            border: '1px solid var(--accent-muted)',
+            borderRadius: '4px',
+            padding: '4px 10px',
+            marginBottom: '16px',
+          }}>
+            <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: 'var(--accent)' }} />
+            <span style={{
+              fontFamily: 'DM Mono, monospace',
+              fontSize: '11px',
+              fontWeight: '500',
+              letterSpacing: '0.06em',
+              color: 'var(--accent)',
+              textTransform: 'uppercase',
+            }}>
+              First-time setup
+            </span>
+          </div>
+
+          <h1 style={{
+            fontSize: '20px',
+            fontWeight: '600',
+            color: 'var(--text-1)',
+            marginBottom: '4px',
+            letterSpacing: '-0.015em',
+          }}>
+            Create admin account
+          </h1>
+          <p style={{
+            fontSize: '13px',
+            color: 'var(--text-2)',
+            marginBottom: '28px',
+            lineHeight: '1.5',
+          }}>
+            This page is only available once. Set up your credentials to access this instance.
           </p>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Admin Email</label>
+              <label className="sf-label">Admin Email</label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="admin@yourdomain.com"
+                className="sf-input"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
+              <label className="sf-label">Password</label>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 minLength={8}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="Min. 8 characters"
+                className="sf-input"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Confirm Password</label>
+              <label className="sf-label">Confirm Password</label>
               <input
                 type="password"
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="••••••••"
+                className="sf-input"
               />
             </div>
 
             {error && (
-              <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">{error}</div>
+              <div className="sf-alert-error">{error}</div>
             )}
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold py-2 px-4 rounded-lg transition duration-200"
+              className="sf-btn-primary"
+              style={{ width: '100%', padding: '10px', marginTop: '4px' }}
             >
               {loading ? 'Creating account...' : 'Create Admin Account'}
             </button>

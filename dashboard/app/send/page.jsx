@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import AppLayout from '../components/AppLayout.jsx';
 import { smsApi } from '../lib/api';
 
 export default function SendPage() {
@@ -13,40 +13,27 @@ export default function SendPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  const characterCount = message.length;
-  const maxCharacters = 160;
+  const MAX = 160;
+  const count = message.length;
+  const overLimit = count > MAX;
+  const pct = Math.min((count / MAX) * 100, 100);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setSuccess('');
 
-    if (!recipient.trim()) {
-      setError('Please enter a recipient phone number');
-      return;
-    }
-
-    if (!message.trim()) {
-      setError('Please enter a message');
-      return;
-    }
-
-    if (message.length > maxCharacters) {
-      setError(`Message cannot exceed ${maxCharacters} characters`);
-      return;
-    }
+    if (!recipient.trim()) { setError('Enter a recipient phone number'); return; }
+    if (!message.trim()) { setError('Enter a message'); return; }
+    if (overLimit) { setError(`Message exceeds ${MAX} characters`); return; }
 
     setLoading(true);
     try {
       const response = await smsApi.sendSms(recipient, message);
-      setSuccess(`SMS queued for delivery! Job ID: ${response.job_id}`);
+      setSuccess(`Job queued — ID: ${response.job_id}`);
       setRecipient('');
       setMessage('');
-
-      // Redirect to job details after a short delay
-      setTimeout(() => {
-        router.push(`/jobs/?id=${response.job_id}`);
-      }, 1500);
+      setTimeout(() => router.push(`/jobs/?id=${response.job_id}`), 1400);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -55,76 +42,119 @@ export default function SendPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <Link href="/dashboard" className="text-blue-600 hover:text-blue-700 font-semibold">
-            ← Back to Dashboard
-          </Link>
+    <AppLayout>
+      {/* Page header */}
+      <div className="sf-page-header">
+        <div>
+          <h1 className="sf-page-title">Send SMS</h1>
+          <p className="sf-page-subtitle">Dispatch a message via your registered devices</p>
         </div>
-      </header>
+      </div>
 
-      <main className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-white rounded-lg shadow p-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Send SMS</h1>
-          <p className="text-gray-600 mb-8">Send an SMS message through your registered devices</p>
-
-          <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="sf-page-content">
+        <div style={{ maxWidth: '520px' }}>
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             {/* Recipient */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Recipient Phone Number</label>
+              <label className="sf-label">Recipient Number</label>
               <input
                 type="tel"
                 value={recipient}
                 onChange={(e) => setRecipient(e.target.value)}
-                placeholder="+1234567890"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="+1 234 567 8900"
+                className="sf-input"
+                style={{ fontFamily: 'DM Mono, monospace' }}
               />
-              <p className="text-xs text-gray-500 mt-1">Format: +1234567890 or 1234567890</p>
+              <p style={{ fontSize: '12px', color: 'var(--text-3)', marginTop: '5px' }}>
+                Include country code, e.g. +12345678900
+              </p>
             </div>
 
             {/* Message */}
             <div>
-              <div className="flex justify-between items-center mb-2">
-                <label className="text-sm font-medium text-gray-700">Message</label>
-                <span className={`text-sm ${characterCount > maxCharacters ? 'text-red-600' : 'text-gray-500'}`}>
-                  {characterCount}/{maxCharacters}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <label className="sf-label" style={{ marginBottom: 0 }}>Message</label>
+                <span style={{
+                  fontFamily: 'DM Mono, monospace',
+                  fontSize: '11.5px',
+                  color: overLimit ? 'var(--status-failed)' : count > MAX * 0.8 ? 'var(--status-pending)' : 'var(--text-3)',
+                }}>
+                  {count} / {MAX}
                 </span>
               </div>
               <textarea
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                placeholder="Type your message here..."
-                rows="5"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                placeholder="Type your message..."
+                rows={5}
+                className="sf-input"
+                style={{ resize: 'none', lineHeight: '1.55' }}
               />
-              {characterCount > maxCharacters && (
-                <p className="text-sm text-red-600 mt-1">Message exceeds maximum length</p>
-              )}
+              {/* Character bar */}
+              <div style={{
+                marginTop: '6px',
+                height: '2px',
+                background: 'var(--border)',
+                borderRadius: '1px',
+                overflow: 'hidden',
+              }}>
+                <div style={{
+                  height: '100%',
+                  width: `${pct}%`,
+                  background: overLimit ? 'var(--status-failed)' : count > MAX * 0.8 ? 'var(--status-pending)' : 'var(--accent)',
+                  borderRadius: '1px',
+                  transition: 'width 0.1s, background 0.15s',
+                }} />
+              </div>
             </div>
 
-            {/* Errors */}
-            {error && (
-              <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">{error}</div>
-            )}
+            {error && <div className="sf-alert-error">{error}</div>}
+            {success && <div className="sf-alert-success">{success}</div>}
 
-            {/* Success */}
-            {success && (
-              <div className="p-4 bg-green-50 border border-green-200 text-green-700 rounded-lg text-sm">{success}</div>
-            )}
-
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={loading || characterCount > maxCharacters}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold py-3 px-4 rounded-lg transition duration-200"
-            >
-              {loading ? 'Sending...' : 'Send SMS'}
-            </button>
+            {/* Actions */}
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+              <button
+                type="submit"
+                disabled={loading || overLimit}
+                className="sf-btn-primary"
+                style={{ padding: '10px 24px', display: 'flex', alignItems: 'center', gap: '7px' }}
+              >
+                {loading ? (
+                  <>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ animation: 'spin 0.8s linear infinite' }}>
+                      <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                    </svg>
+                    Queuing...
+                  </>
+                ) : (
+                  <>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="m22 2-7 20-4-9-9-4Z" /><path d="M22 2 11 13" />
+                    </svg>
+                    Send SMS
+                  </>
+                )}
+              </button>
+            </div>
           </form>
+
+          {/* Info box */}
+          <div style={{
+            marginTop: '32px',
+            background: 'var(--surface)',
+            border: '1px solid var(--border)',
+            borderRadius: '8px',
+            padding: '16px',
+          }}>
+            <p style={{ fontSize: '12px', color: 'var(--text-3)', lineHeight: '1.6' }}>
+              Messages are dispatched to the device with the most recent heartbeat.
+              Failed jobs remain in <span style={{ fontFamily: 'DM Mono, monospace', color: 'var(--status-failed)' }}>failed</span> state permanently — there is no automatic retry.
+            </p>
+          </div>
         </div>
-      </main>
-    </div>
+      </div>
+
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </AppLayout>
   );
 }

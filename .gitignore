@@ -45,3 +45,4 @@ dashboard/out/
 /android-app/.gradle/*
 docs/
 *.apk
+CLAUDE.md

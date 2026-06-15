@@ -1,10 +1,10 @@
-# 🚀 SMSFlare: Your Self-Hosted SMS Gateway
+# SMSFlare: Your Self-Hosted SMS Gateway
 
 **SMSFlare** is a professional, edge-powered SMS gateway that turns any Android device into a private SMS distribution node. No third-party carrier APIs, no per-message fees — just your hardware, your SIM cards, and complete infrastructure ownership.
 
 ---
 
-## 🏗️ How it Works
+## How it Works
 
 1.  **Backend (Edge)**: A Cloudflare Worker manages the message queue, device heartbeats, and API authentication.
 2.  **Database (Global)**: Cloudflare D1 (SQLite) stores jobs, logs, and device metadata at the edge.
@@ -13,7 +13,7 @@
 
 ---
 
-## 📋 Prerequisites
+## Prerequisites
 
 Before you begin, ensure you have:
 
@@ -24,13 +24,13 @@ Before you begin, ensure you have:
 
 ---
 
-## 🚀 One-Click Setup
+## One-Click Setup
 
 The included `setup.sh` script automates the entire process — from creating databases to deploying the edge infrastructure.
 
 ```bash
-git clone https://github.com/yourusername/smsflare.git
-cd smsflare
+git clone https://github.com/RAN-GAN/smsFlare.git
+cd smsFlare
 chmod +x setup.sh
 ./setup.sh
 ```
@@ -62,7 +62,7 @@ Ideal for testing or modification.
 
 ---
 
-## 📱 Setting up the Android Client
+## Setting up the Android Client
 
 1.  **Download the App**: You can find the `smsflare.apk` in the root of this project or download it directly from your dashboard's "Start" page once deployed.
 2.  **Install**: Sideload the APK onto your Android device.
@@ -74,7 +74,7 @@ Ideal for testing or modification.
 
 ---
 
-## 🔌 Sending your first SMS
+## Sending your first SMS
 
 Once your device is online (indicated by a green status in the dashboard), you can send messages via the UI or the REST API.
 
@@ -93,7 +93,7 @@ curl -X POST https://your-worker.workers.dev/api/sms/send \
 
 ---
 
-## 🛠️ Maintenance & Scaling
+## Maintenance & Scaling
 
 ### Database Migrations
 If you update the schema, apply migrations to production:
@@ -109,7 +109,7 @@ Check the **Logs** tab in the dashboard for real-time delivery status and device
 
 ---
 
-## 🔒 Security Best Practices
+## Security Best Practices
 
 -   **Rotate API Keys**: If a key is compromised, revoke it immediately in the dashboard.
 -   **JWT Secret**: The setup script generates a 48-byte random secret. Do not share this or commit it to version control.

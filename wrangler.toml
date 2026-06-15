@@ -14,7 +14,7 @@ name = "smsflare-prod"
 [[env.production.d1_databases]]
 binding = "DB"
 database_name = "smsflare"
-database_id = "2344af0c-d56a-420e-b5d2-4ade8892b608"
+database_id = "e61b8c08-1012-4125-a804-2a2f69cf9fac"
 
 [env.staging]
 name = "smsflare-staging"
@@ -22,13 +22,13 @@ name = "smsflare-staging"
 [[env.staging.d1_databases]]
 binding = "DB"
 database_name = "smsflare"
-database_id = "2344af0c-d56a-420e-b5d2-4ade8892b608"
+database_id = "e61b8c08-1012-4125-a804-2a2f69cf9fac"
 
 # D1 Database binding
 [[d1_databases]]
 binding = "DB"
 database_name = "smsflare"
-database_id = "2344af0c-d56a-420e-b5d2-4ade8892b608"
+database_id = "e61b8c08-1012-4125-a804-2a2f69cf9fac"
 
 # Environment variables
 [env.production.vars]

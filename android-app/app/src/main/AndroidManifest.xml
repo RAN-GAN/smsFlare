@@ -22,6 +22,8 @@
         android:theme="@style/Theme.SmsFlare"
         android:supportsRtl="true">
 
+        <activity android:name=".PortraitCaptureActivity" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true">

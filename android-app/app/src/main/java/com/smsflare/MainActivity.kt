@@ -168,7 +168,7 @@ class MainActivity : AppCompatActivity() {
                     setDesiredBarcodeFormats(ScanOptions.QR_CODE)
                     setPrompt("Scan the QR code from your SMS Flare dashboard")
                     setBeepEnabled(false)
-                    setOrientationLocked(false)
+                    setCaptureActivity(PortraitCaptureActivity::class.java)
                 }
             )
         }

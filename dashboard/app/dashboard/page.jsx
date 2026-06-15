@@ -375,7 +375,7 @@ export default function DashboardPage() {
                 <tbody>
                   {jobs.map((job) => (
                     <tr key={job.id}>
-                      <td style={{ color: 'var(--text-1)', fontFamily: 'DM Mono, monospace', fontSize: '13px' }}>
+                      <td style={{ fontFamily: 'DM Mono, monospace', fontSize: '13.5px' }}>
                         {job.recipient}
                       </td>
                       <td style={{
@@ -389,14 +389,14 @@ export default function DashboardPage() {
                       <td>
                         <span className={statusClass(job.status)}>{job.status}</span>
                       </td>
-                      <td style={{ fontFamily: 'DM Mono, monospace', fontSize: '12px' }}>
+                      <td style={{ fontFamily: 'DM Mono, monospace', fontSize: '13px', color: 'var(--text-2)' }}>
                         {formatTime(job.created_at)}
                       </td>
                       <td>
                         <Link href={`/jobs/?id=${job.id}`} style={{
-                          fontSize: '12px',
+                          fontSize: '13px',
                           fontWeight: '500',
-                          color: 'var(--text-2)',
+                          color: 'var(--accent)',
                           transition: 'color 0.12s',
                         }}>
                           View

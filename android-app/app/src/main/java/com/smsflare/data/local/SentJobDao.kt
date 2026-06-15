@@ -12,4 +12,7 @@ interface SentJobDao {
 
     @Query("DELETE FROM sent_jobs WHERE sentAt < :cutoff")
     suspend fun deleteOlderThan(cutoff: Long)
+
+    @Query("DELETE FROM sent_jobs WHERE jobId = :jobId")
+    suspend fun deleteById(jobId: String)
 }

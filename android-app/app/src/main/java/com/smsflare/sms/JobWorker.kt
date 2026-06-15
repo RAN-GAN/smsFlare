@@ -43,14 +43,17 @@ class JobWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx, p
 
         if (!alreadySent) {
             AppLogger.info("JobWorker", "Starting job $jobId — sending SMS to $recipient")
+            // Pre-insert before sending so a process kill during the 30-second modem-ACK
+            // wait doesn't lose the dedup guard. On genuine send failure we delete it.
+            sentJobDao.insert(SentJob(jobId = jobId))
             when (val result = SmsSender(applicationContext).send(jobId, recipient, message)) {
                 is SmsResult.Sent, is SmsResult.Submitted -> {
                     val label = if (result is SmsResult.Sent) "confirmed" else "submitted (no modem ACK)"
-                    AppLogger.info("JobWorker", "SMS $label for job $jobId — saving to local DB")
-                    sentJobDao.insert(SentJob(jobId = jobId))
+                    AppLogger.info("JobWorker", "SMS $label for job $jobId")
                 }
                 is SmsResult.Failed -> {
                     AppLogger.error("JobWorker", "SMS failed for job $jobId: ${result.reason}")
+                    sentJobDao.deleteById(jobId)
                     reporter.report(token, jobId, "failed", result.reason)
                     return Result.failure()
                 }

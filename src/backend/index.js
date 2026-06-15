@@ -376,7 +376,7 @@ app.post('/api/device/jobs/:id/status', verifyDeviceToken, async (c) => {
     // Only allow valid transitions: sent/failed from assigned, delivered from sent
     const requiredCurrentStatus = status === 'delivered' ? 'sent' : 'assigned';
 
-    await db
+    const updateResult = await db
       .prepare(
         `UPDATE sms_jobs
          SET status = ?, sent_at = COALESCE(?, sent_at), delivered_at = COALESCE(?, delivered_at), updated_at = ?
@@ -385,10 +385,14 @@ app.post('/api/device/jobs/:id/status', verifyDeviceToken, async (c) => {
       .bind(status, sentAt, deliveredAt, now_ts, jobId, c.get('device_id'), requiredCurrentStatus)
       .run();
 
-    // Log status change
+    if (updateResult.meta.changes === 0) {
+      return c.json({ success: false, reason: 'no_matching_job' });
+    }
+
+    // Log status change only when the transition actually happened
     await db
       .prepare(
-        `INSERT INTO sms_logs (id, job_id, status, timestamp, error_message, created_at) 
+        `INSERT INTO sms_logs (id, job_id, status, timestamp, error_message, created_at)
          VALUES (?, ?, ?, ?, ?, ?)`
       )
       .bind(generateId(), jobId, status, timestamp || now_ts, error_message ?? null, now_ts)

@@ -1,200 +1,120 @@
-# SMS Flare
+# 🚀 SMSFlare: Your Self-Hosted SMS Gateway
 
-A self-hosted SMS gateway that routes messages through Android phones with SIM cards. You own the infrastructure — no per-message fees, no third-party carrier APIs.
-
-## How it works
-
-1. Deploy the backend to Cloudflare Workers
-2. Register your Android phones via the web dashboard
-3. Send SMS via the dashboard UI or a simple REST API
-4. The Android app picks up jobs every 30 seconds and sends them via the device's SIM card
-
-## Stack
-
-- **Backend**: Cloudflare Workers + Hono
-- **Database**: Cloudflare D1 (SQLite)
-- **Dashboard**: Next.js 14 + Tailwind CSS
-- **Android client**: Native polling app (separate project)
+**SMSFlare** is a professional, edge-powered SMS gateway that turns any Android device into a private SMS distribution node. No third-party carrier APIs, no per-message fees — just your hardware, your SIM cards, and complete infrastructure ownership.
 
 ---
 
-## Quick start
+## 🏗️ How it Works
 
-### Prerequisites
+1.  **Backend (Edge)**: A Cloudflare Worker manages the message queue, device heartbeats, and API authentication.
+2.  **Database (Global)**: Cloudflare D1 (SQLite) stores jobs, logs, and device metadata at the edge.
+3.  **Dashboard (Web)**: A Next.js interface for managing devices, monitoring status, and sending messages.
+4.  **Android Client**: A native app that polls the backend for assigned jobs and sends them via the device's SIM card.
 
-- Node.js 18+
-- A [Cloudflare account](https://dash.cloudflare.com/sign-up) (free tier works)
-- Wrangler CLI — installed automatically by the setup script if missing
+---
 
-### 1. Run the setup script
+## 📋 Prerequisites
+
+Before you begin, ensure you have:
+
+-   **Cloudflare Account**: [Sign up for free](https://dash.cloudflare.com/sign-up).
+-   **Node.js 18+**: For running the setup and local development.
+-   **Android Device**: Running Android 8.0+ with an active SIM card.
+-   **Domain (Optional)**: If you want a custom domain for your dashboard.
+
+---
+
+## 🚀 One-Click Setup
+
+The included `setup.sh` script automates the entire process — from creating databases to deploying the edge infrastructure.
 
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/yourusername/smsflare.git
 cd smsflare
+chmod +x setup.sh
 ./setup.sh
 ```
 
-This does everything in one pass:
-- Logs you into Cloudflare
-- Creates the D1 database and updates `wrangler.toml`
-- Runs all migrations
-- Generates a random `JWT_SECRET` and saves it to `.dev.vars`
-- Installs dashboard dependencies and creates `dashboard/.env.local`
+### Choose your path:
 
-### 2. Start development servers
+#### **Option 1: Cloudflare Deployment (Production)**
+This is the recommended setup. It deploys the system to Cloudflare's global network.
+1.  Select **Mode 2** in the setup script.
+2.  The script will:
+    *   Authenticate with Cloudflare.
+    *   Create your **D1 Database**.
+    *   Deploy the **Worker Backend**.
+    *   Generate a secure **JWT Secret**.
+    *   Deploy the **Management Dashboard** to Cloudflare Pages.
+3.  Once finished, you will receive your live **Dashboard URL**.
 
-```bash
-# Terminal 1 — backend (http://localhost:8787)
-npm run dev
-
-# Terminal 2 — dashboard (http://localhost:3000)
-cd dashboard && npm run dev
-```
-
-### 3. Create an account and pair a device
-
-1. Open `http://localhost:3000` and sign up
-2. Go to **Settings → Generate Pairing Token**
-3. Scan the QR code with the Android app — it encodes the token and API URL together so you don't need to type anything
+#### **Option 2: Local Development**
+Ideal for testing or modification.
+1.  Select **Mode 1** in the setup script.
+2.  Start the servers:
+    ```bash
+    # Terminal 1: Backend
+    npm run dev
+    # Terminal 2: Dashboard
+    cd dashboard && npm run dev
+    ```
+3.  Access the UI at `http://localhost:3000`.
 
 ---
 
-## API
+## 📱 Setting up the Android Client
 
-All requests use `Authorization: Bearer <token>`. Three token types are accepted:
+1.  **Download the App**: You can find the `smsflare.apk` in the root of this project or download it directly from your dashboard's "Start" page once deployed.
+2.  **Install**: Sideload the APK onto your Android device.
+3.  **Pairing**:
+    *   On your Dashboard, go to **Settings** → **Generate Pairing Token**.
+    *   Open the SMSFlare app on Android and tap **Scan QR Code**.
+    *   Grant the required permissions (**Send SMS**, **Read Phone State**).
+4.  **Stay Online**: The app will now start sending heartbeats and checking for jobs.
 
-| Type | How to get it | Used for |
-|---|---|---|
-| User JWT | Login via dashboard or `POST /auth/login` | Dashboard sessions (24h expiry) |
-| API key | Settings → Create API Key | Programmatic access |
-| Device token | Returned by `POST /api/device/register` | Android app only |
+---
 
-### Send an SMS
+## 🔌 Sending your first SMS
+
+Once your device is online (indicated by a green status in the dashboard), you can send messages via the UI or the REST API.
+
+### Using the REST API
+Generate an **API Key** in your dashboard settings, then use it as a Bearer token:
 
 ```bash
-curl -X POST http://localhost:8787/api/sms/send \
+curl -X POST https://your-worker.workers.dev/api/sms/send \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"to": "+1234567890", "message": "Hello from SMS Flare!"}'
+  -d '{
+    "to": "+1234567890",
+    "message": "Hello from my private SMSFlare gateway!"
+  }'
 ```
-
-Response:
-```json
-{
-  "job_id": "abc123def456",
-  "status": "assigned",
-  "assigned_device": "device_id_here"
-}
-```
-
-Job status lifecycle: `pending` → `assigned` → `sent` → `delivered` (or `failed`)
-
-### All endpoints
-
-**Auth**
-- `POST /auth/register` — create account
-- `POST /auth/login` — login, returns JWT
-- `POST /auth/device-pair` — generate device pairing token
-- `POST /auth/api-keys` — create API key
-- `GET  /auth/api-keys` — list API keys
-
-**SMS**
-- `POST /api/sms/send` — send SMS (user JWT or API key)
-- `GET  /api/jobs` — list jobs (paginated: `?limit=20&offset=0`)
-- `GET  /api/jobs/:id` — job details + delivery timeline
-
-**Devices**
-- `GET  /api/devices` — list registered devices
-- `POST /api/device/register` — register device with pairing token
-- `GET  /api/device/jobs` — poll for pending job (Android app)
-- `POST /api/device/jobs/:id/status` — report delivery status (Android app)
-- `POST /api/device/heartbeat` — device heartbeat (Android app)
-
-**System**
-- `GET  /health` — status check, includes `jwt_configured` flag
 
 ---
 
-## Deployment
+## 🛠️ Maintenance & Scaling
 
-### Backend (Cloudflare Workers)
-
+### Database Migrations
+If you update the schema, apply migrations to production:
 ```bash
-# Set the JWT secret
-wrangler secret put JWT_SECRET --env production
-
-# Run migrations against the production database
-wrangler d1 migrations apply smsflare --env production
-
-# Deploy
-npm run deploy
+wrangler d1 migrations apply smsflare --env production --remote
 ```
 
-### Dashboard (Cloudflare Pages)
+### Scaling to Multiple Devices
+SMSFlare automatically distributes jobs based on device availability and heartbeat recency. Simply repeat the **Pairing** steps for additional Android devices to increase your throughput.
 
-```bash
-cd dashboard
-echo "NEXT_PUBLIC_API_URL=https://your-worker.workers.dev" > .env.local
-npm run build
-wrangler pages deploy .next/
-```
+### Monitoring
+Check the **Logs** tab in the dashboard for real-time delivery status and device signal/battery history.
 
 ---
 
-## Environment variables
+## 🔒 Security Best Practices
 
-**Backend** — set in `wrangler.toml` (vars) or via `wrangler secret put` (secrets):
-
-| Name | Where | Description |
-|---|---|---|
-| `JWT_SECRET` | Secret | Signs user JWTs. Required — backend warns on every request if missing. |
-| `API_BASE_URL` | Var | Public URL of the deployed Worker |
-| `DASHBOARD_URL` | Var | Public URL of the dashboard |
-
-For local dev, put secrets in `.dev.vars` (created automatically by `setup.sh`, gitignored):
-```
-JWT_SECRET=your-local-secret
-```
-
-**Dashboard** — `dashboard/.env.local`:
-```
-NEXT_PUBLIC_API_URL=http://localhost:8787
-```
+-   **Rotate API Keys**: If a key is compromised, revoke it immediately in the dashboard.
+-   **JWT Secret**: The setup script generates a 48-byte random secret. Do not share this or commit it to version control.
+-   **Permissions**: The Android app only requires SMS and Phone State permissions. It does not access your contacts or personal data.
 
 ---
 
-## Database schema
-
-Six migrations in `migrations/`. Key tables:
-
-- **`users`** — email + SHA-256 password hash
-- **`devices`** — registered Android devices; `online` flag updated by heartbeat
-- **`api_keys`** — only the SHA-256 hash is stored, never the plaintext key
-- **`sms_jobs`** — one row per send request; status tracks delivery lifecycle
-- **`sms_logs`** — status change events per job (delivery timeline)
-- **`device_heartbeats`** — battery/signal history per device
-
-```bash
-# Create a new migration
-npm run migrations:create -- <migration-name>
-
-# Check migration status
-npm run migrations:status
-```
-
----
-
-## Limitations (MVP)
-
-- Messages capped at 160 characters
-- No retries — failed jobs stay `failed`
-- No scheduled sends
-- No bulk upload
-- Device assignment is first-come: the device with the most recent heartbeat gets the job. If it's unreachable, the job stalls as `assigned`.
-- Passwords hashed with SHA-256 (Web Crypto API constraint — bcrypt requires Node.js)
-
-## Scaling
-
-The current design handles ~100 active devices comfortably. Each device polls every 30 seconds, so 100 devices = ~200 requests/min — well within Cloudflare Workers free tier.
-
-For 1,000+ devices, replace polling with FCM push notifications or WebSocket via Durable Objects.
+Built for privacy and performance. **SMSFlare** — Your SIM, your rules.

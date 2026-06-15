@@ -4,6 +4,7 @@ import android.content.Context
 import android.os.BatteryManager
 import android.os.Build
 import android.telephony.TelephonyManager
+import com.smsflare.data.local.AppLogger
 import com.smsflare.data.remote.ApiClient
 import com.smsflare.data.remote.JobResponse
 import com.smsflare.data.remote.RegisterRequest
@@ -28,7 +29,23 @@ class DeviceRepository(private val context: Context) {
     }
 
     suspend fun pollJob(baseUrl: String, deviceToken: String): JobResponse? {
+        AppLogger.info("Poll", "→ GET /api/device/jobs")
         val response = ApiClient.create(baseUrl).pollJob("Bearer $deviceToken")
-        return if (response.isSuccessful && response.code() != 204) response.body() else null
+        val code = response.code()
+        return when {
+            code == 204 -> {
+                AppLogger.info("Poll", "← HTTP $code — no pending jobs")
+                null
+            }
+            response.isSuccessful -> {
+                val job = response.body()
+                AppLogger.info("Poll", "← HTTP $code — job ${job?.job_id} for ${job?.recipient}")
+                job
+            }
+            else -> {
+                AppLogger.warn("Poll", "← HTTP $code — server error")
+                null
+            }
+        }
     }
 }

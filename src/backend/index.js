@@ -260,25 +260,24 @@ app.post('/api/device/heartbeat', verifyDeviceToken, async (c) => {
     const db = c.env.DB;
     const timestamp = now();
 
-    // Update device heartbeat
     await db
       .prepare(
-        `UPDATE devices 
-         SET battery_level = COALESCE(?, battery_level), 
-             online = 1, 
-             last_heartbeat = ? 
+        `UPDATE devices
+         SET battery_level = COALESCE(?, battery_level),
+             online = 1,
+             last_heartbeat = ?,
+             updated_at = ?
          WHERE id = ?`
       )
-      .bind(battery_level, timestamp, deviceId)
+      .bind(battery_level, timestamp, timestamp, deviceId)
       .run();
 
-    // Log heartbeat
     await db
       .prepare(
-        `INSERT INTO device_heartbeats (id, device_id, battery_level, signal_strength, sim_status, app_version, created_at) 
-         VALUES (?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO device_heartbeats (device_id, battery_level, signal_strength, sim_status, app_version, created_at)
+         VALUES (?, ?, ?, ?, ?, ?)`
       )
-      .bind(generateId(), deviceId, battery_level, signal_strength, sim_status, app_version, timestamp)
+      .bind(deviceId, battery_level ?? null, signal_strength ?? null, sim_status ?? null, app_version ?? null, timestamp)
       .run();
 
     return c.json({ success: true });
@@ -293,19 +292,60 @@ app.get('/api/device/jobs', verifyDeviceToken, async (c) => {
     const deviceId = c.get('device_id');
     const db = c.env.DB;
 
-    // Find assigned job for this device
-    const job = await db
+    // Check for a job already assigned to this device
+    let job = await db
       .prepare(
-        `SELECT id, recipient, message 
-         FROM sms_jobs 
-         WHERE device_id = ? AND status = 'assigned' 
+        `SELECT id, recipient, message
+         FROM sms_jobs
+         WHERE device_id = ? AND status = 'assigned'
          LIMIT 1`
       )
       .bind(deviceId)
       .first();
 
     if (!job) {
-      return c.json(null, 204);
+      // No assigned job — try to claim a pending job or rescue an orphaned one
+      // (orphaned = status 'assigned' but device_id IS NULL because the original
+      //  device was deleted via ON DELETE SET NULL)
+      const device = await db
+        .prepare('SELECT user_id FROM devices WHERE id = ?')
+        .bind(deviceId)
+        .first();
+
+      if (device) {
+        const claimable = await db
+          .prepare(
+            `SELECT id, recipient, message
+             FROM sms_jobs
+             WHERE user_id = ?
+               AND (status = 'pending' OR (status = 'assigned' AND device_id IS NULL))
+             ORDER BY created_at ASC
+             LIMIT 1`
+          )
+          .bind(device.user_id)
+          .first();
+
+        if (claimable) {
+          const ts = now();
+          const result = await db
+            .prepare(
+              `UPDATE sms_jobs
+               SET device_id = ?, status = 'assigned', assigned_at = ?, updated_at = ?
+               WHERE id = ?
+                 AND (status = 'pending' OR (status = 'assigned' AND device_id IS NULL))`
+            )
+            .bind(deviceId, ts, ts, claimable.id)
+            .run();
+
+          if (result.meta.changes > 0) {
+            job = claimable;
+          }
+        }
+      }
+    }
+
+    if (!job) {
+      return new Response(null, { status: 204 });
     }
 
     return c.json({
@@ -331,25 +371,18 @@ app.post('/api/device/jobs/:id/status', verifyDeviceToken, async (c) => {
 
     const now_ts = now();
 
-    // Update job status
-    const updateData = {
-      status,
-      updated_at: now_ts,
-    };
-
-    if (status === 'sent') {
-      updateData.sent_at = timestamp || now_ts;
-    } else if (status === 'delivered') {
-      updateData.delivered_at = timestamp || now_ts;
-    }
+    const sentAt = status === 'sent' ? (timestamp || now_ts) : null;
+    const deliveredAt = status === 'delivered' ? (timestamp || now_ts) : null;
+    // Only allow valid transitions: sent/failed from assigned, delivered from sent
+    const requiredCurrentStatus = status === 'delivered' ? 'sent' : 'assigned';
 
     await db
       .prepare(
-        `UPDATE sms_jobs 
-         SET status = ?, sent_at = COALESCE(?, sent_at), delivered_at = COALESCE(?, delivered_at), updated_at = ? 
-         WHERE id = ?`
+        `UPDATE sms_jobs
+         SET status = ?, sent_at = COALESCE(?, sent_at), delivered_at = COALESCE(?, delivered_at), updated_at = ?
+         WHERE id = ? AND device_id = ? AND status = ?`
       )
-      .bind(status, updateData.sent_at, updateData.delivered_at, now_ts, jobId)
+      .bind(status, sentAt, deliveredAt, now_ts, jobId, c.get('device_id'), requiredCurrentStatus)
       .run();
 
     // Log status change
@@ -358,7 +391,7 @@ app.post('/api/device/jobs/:id/status', verifyDeviceToken, async (c) => {
         `INSERT INTO sms_logs (id, job_id, status, timestamp, error_message, created_at) 
          VALUES (?, ?, ?, ?, ?, ?)`
       )
-      .bind(generateId(), jobId, status, timestamp || now_ts, error_message, now_ts)
+      .bind(generateId(), jobId, status, timestamp || now_ts, error_message ?? null, now_ts)
       .run();
 
     return c.json({ success: true });
@@ -455,7 +488,6 @@ app.get('/api/jobs', verifyUserToken, async (c) => {
 
     return c.json({
       jobs: result.results || [],
-      total: (result.results || []).length,
     });
   } catch (e) {
     console.error('Get jobs error:', e);

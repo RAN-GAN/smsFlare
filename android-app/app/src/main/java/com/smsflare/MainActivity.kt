@@ -4,11 +4,14 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.app.AlertDialog
 import android.content.pm.PackageManager
+import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
 import android.telephony.SubscriptionInfo
 import android.telephony.SubscriptionManager
+import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
 import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
@@ -18,17 +21,30 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.journeyapps.barcodescanner.ScanContract
 import com.journeyapps.barcodescanner.ScanOptions
 import com.smsflare.data.DevicePrefs
+import com.smsflare.data.local.AppDatabase
+import com.smsflare.data.local.AppLogger
+import com.smsflare.data.local.LogEntry
 import com.smsflare.polling.DeviceRepository
 import com.smsflare.polling.JobPoller
 import com.smsflare.reporting.HeartbeatSender
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.json.JSONException
 import org.json.JSONObject
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
+
+    private lateinit var logAdapter: LogAdapter
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -56,6 +72,8 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        setupLogsTab()
+
         lifecycleScope.launch {
             if (DevicePrefs.isRegistered(this@MainActivity)) {
                 if (DevicePrefs.getSubscriptionId(this@MainActivity) != null) {
@@ -68,6 +86,50 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
+
+    // ── Logs tab ─────────────────────────────────────────────────────────────
+
+    private fun setupLogsTab() {
+        logAdapter = LogAdapter()
+        findViewById<RecyclerView>(R.id.rvLogs).apply {
+            layoutManager = LinearLayoutManager(this@MainActivity)
+            adapter = logAdapter
+        }
+        findViewById<Button>(R.id.btnClearLogs).setOnClickListener {
+            lifecycleScope.launch(Dispatchers.IO) {
+                AppDatabase.getInstance(this@MainActivity).logEntryDao().deleteAll()
+                withContext(Dispatchers.Main) { logAdapter.setLogs(emptyList()) }
+            }
+        }
+
+        val bottomNav = findViewById<BottomNavigationView>(R.id.bottomNav)
+        val scrollMain = findViewById<View>(R.id.scrollMain)
+        bottomNav.setOnItemSelectedListener { item ->
+            when (item.itemId) {
+                R.id.nav_status -> {
+                    scrollMain.visibility = View.VISIBLE
+                    findViewById<LinearLayout>(R.id.layoutLogs).visibility = View.GONE
+                    true
+                }
+                R.id.nav_logs -> {
+                    scrollMain.visibility = View.GONE
+                    findViewById<LinearLayout>(R.id.layoutLogs).visibility = View.VISIBLE
+                    loadLogs()
+                    true
+                }
+                else -> false
+            }
+        }
+    }
+
+    private fun loadLogs() {
+        lifecycleScope.launch(Dispatchers.IO) {
+            val logs = AppDatabase.getInstance(this@MainActivity).logEntryDao().getRecent()
+            withContext(Dispatchers.Main) { logAdapter.setLogs(logs) }
+        }
+    }
+
+    // ── Permissions ───────────────────────────────────────────────────────────
 
     private fun requestRequiredPermissions() {
         val required = mutableListOf(
@@ -88,6 +150,8 @@ class MainActivity : AppCompatActivity() {
 
         if (missing.isEmpty()) showSetupForm() else permissionLauncher.launch(missing.toTypedArray())
     }
+
+    // ── Setup form ────────────────────────────────────────────────────────────
 
     private fun showSetupForm() {
         findViewById<LinearLayout>(R.id.layoutSetup).visibility = View.VISIBLE
@@ -131,10 +195,12 @@ class MainActivity : AppCompatActivity() {
             try {
                 val response = DeviceRepository(this@MainActivity).register(baseUrl, token)
                 DevicePrefs.save(this@MainActivity, baseUrl, response.device_token, response.device_id)
+                AppLogger.info("MainActivity", "Device paired: ${response.device_id}")
                 JobPoller.schedule(this@MainActivity)
                 HeartbeatSender.schedule(this@MainActivity)
                 pickSimCard(afterPairing = true)
             } catch (e: Exception) {
+                AppLogger.error("MainActivity", "Pairing failed", e)
                 showError("Pairing failed: ${e.message}")
                 btnPair.isEnabled = true
                 btnScanQr.isEnabled = true
@@ -155,18 +221,15 @@ class MainActivity : AppCompatActivity() {
 
         when {
             sims.isEmpty() -> {
-                // No SIM info available (permission denied or no SIM) — proceed without selection
                 lifecycleScope.launch { showStatus() }
             }
             sims.size == 1 -> {
-                // Single SIM — auto-select silently
                 lifecycleScope.launch {
                     DevicePrefs.saveSubscriptionId(this@MainActivity, sims[0].subscriptionId)
                     showStatus()
                 }
             }
             else -> {
-                // Multiple SIMs — let user pick
                 val labels = sims.map { sim ->
                     val slot = "SIM ${sim.simSlotIndex + 1}"
                     val carrier = sim.carrierName.takeIf { it.isNotEmpty() } ?: sim.displayName ?: "Unknown"
@@ -177,7 +240,7 @@ class MainActivity : AppCompatActivity() {
                 val title = if (afterPairing) "Choose which SIM sends SMS" else "Select SMS SIM"
                 AlertDialog.Builder(this)
                     .setTitle(title)
-                    .setCancelable(!afterPairing) // force pick after first pairing
+                    .setCancelable(!afterPairing)
                     .setItems(labels) { _, index ->
                         lifecycleScope.launch {
                             DevicePrefs.saveSubscriptionId(this@MainActivity, sims[index].subscriptionId)
@@ -210,9 +273,13 @@ class MainActivity : AppCompatActivity() {
         } else "No SIM selected"
 
         runOnUiThread {
+            val scrollMain = findViewById<View>(R.id.scrollMain)
+            scrollMain.visibility = View.VISIBLE
             findViewById<LinearLayout>(R.id.layoutSetup).visibility = View.GONE
-            val statusLayout = findViewById<LinearLayout>(R.id.layoutStatus)
-            statusLayout.visibility = View.VISIBLE
+            findViewById<LinearLayout>(R.id.layoutStatus).visibility = View.VISIBLE
+            findViewById<LinearLayout>(R.id.layoutLogs).visibility = View.GONE
+
+            findViewById<BottomNavigationView>(R.id.bottomNav).selectedItemId = R.id.nav_status
 
             findViewById<TextView>(R.id.tvDeviceId).text = "Device: $deviceId"
             findViewById<TextView>(R.id.tvBaseUrl).text = "Server: $baseUrl"
@@ -225,6 +292,8 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    // ── Error helpers ─────────────────────────────────────────────────────────
+
     private fun showError(message: String) {
         val tv = findViewById<TextView>(R.id.tvError)
         tv.text = message
@@ -233,5 +302,54 @@ class MainActivity : AppCompatActivity() {
 
     private fun hideError() {
         findViewById<TextView>(R.id.tvError).visibility = View.GONE
+    }
+
+    // ── Log list adapter ──────────────────────────────────────────────────────
+
+    inner class LogAdapter : RecyclerView.Adapter<LogAdapter.ViewHolder>() {
+        private val timeFmt = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
+        private var items: List<LogEntry> = emptyList()
+
+        fun setLogs(logs: List<LogEntry>) {
+            items = logs
+            @Suppress("NotifyDataSetChanged")
+            notifyDataSetChanged()
+        }
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+            val view = LayoutInflater.from(parent.context)
+                .inflate(R.layout.item_log_entry, parent, false)
+            return ViewHolder(view)
+        }
+
+        override fun onBindViewHolder(holder: ViewHolder, position: Int) =
+            holder.bind(items[position], position)
+
+        override fun getItemCount() = items.size
+
+        inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+            private val tvLevel: TextView = view.findViewById(R.id.tvLevel)
+            private val tvTag: TextView = view.findViewById(R.id.tvTag)
+            private val tvTime: TextView = view.findViewById(R.id.tvTime)
+            private val tvMessage: TextView = view.findViewById(R.id.tvMessage)
+
+            fun bind(entry: LogEntry, position: Int) {
+                tvLevel.text = entry.level
+                tvTag.text = entry.tag
+                tvTime.text = timeFmt.format(Date(entry.timestamp))
+                tvMessage.text = entry.message
+
+                val (textColor, bgColor) = when (entry.level) {
+                    "ERROR" -> Color.parseColor("#B00020") to Color.parseColor("#FFF0F0")
+                    "WARN"  -> Color.parseColor("#E65100") to Color.parseColor("#FFF8F0")
+                    else    -> Color.parseColor("#1565C0") to Color.parseColor("#F0F4FF")
+                }
+                tvLevel.setTextColor(textColor)
+                tvLevel.setBackgroundColor(bgColor)
+                itemView.setBackgroundColor(
+                    if (position % 2 == 0) Color.WHITE else Color.parseColor("#FAFAFA")
+                )
+            }
+        }
     }
 }

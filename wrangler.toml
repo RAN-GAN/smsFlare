@@ -3,6 +3,10 @@ main = "src/backend/index.js"
 compatibility_date = "2024-05-10"
 compatibility_flags = ["nodejs_compat"]
 
+# Workers Observability — free tier allows 200k events/month
+[observability]
+enabled = true
+
 # Environment configuration
 [env.production]
 name = "smsflare-prod"
@@ -10,7 +14,7 @@ name = "smsflare-prod"
 [[env.production.d1_databases]]
 binding = "DB"
 database_name = "smsflare"
-database_id = "c3f500a9-6065-4aa2-9e85-cab6858a9261"
+database_id = "9e4dc7f9-2582-4c9b-b280-6a46ff00076d"
 
 [env.staging]
 name = "smsflare-staging"
@@ -18,13 +22,13 @@ name = "smsflare-staging"
 [[env.staging.d1_databases]]
 binding = "DB"
 database_name = "smsflare"
-database_id = "c3f500a9-6065-4aa2-9e85-cab6858a9261"
+database_id = "9e4dc7f9-2582-4c9b-b280-6a46ff00076d"
 
 # D1 Database binding
 [[d1_databases]]
 binding = "DB"
 database_name = "smsflare"
-database_id = "c3f500a9-6065-4aa2-9e85-cab6858a9261"
+database_id = "9e4dc7f9-2582-4c9b-b280-6a46ff00076d"
 
 # Environment variables
 [env.production.vars]

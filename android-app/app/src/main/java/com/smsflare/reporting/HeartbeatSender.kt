@@ -6,6 +6,7 @@ import android.util.Log
 import androidx.work.*
 import com.smsflare.BuildConfig
 import com.smsflare.data.DevicePrefs
+import com.smsflare.data.local.AppLogger
 import com.smsflare.data.remote.ApiClient
 import com.smsflare.data.remote.HeartbeatPayload
 import java.util.concurrent.TimeUnit
@@ -29,8 +30,9 @@ class HeartbeatSender(ctx: Context, params: WorkerParameters) : CoroutineWorker(
                     app_version = BuildConfig.VERSION_NAME
                 )
             )
+            AppLogger.info("HeartbeatSender", "Heartbeat sent (battery: $battery%)")
         } catch (e: Exception) {
-            Log.e("HeartbeatSender", "Heartbeat failed: ${e.message}")
+            AppLogger.error("HeartbeatSender", "Heartbeat failed", e)
         }
 
         return Result.success()

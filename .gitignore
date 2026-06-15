@@ -44,5 +44,4 @@ dashboard/out/
 *.sqlite
 /android-app/.gradle/*
 docs/
-*.apk
 CLAUDE.md

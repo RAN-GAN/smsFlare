@@ -1,15 +1,37 @@
-# SMSFlare: Your Self-Hosted SMS Gateway
+# SMSFlare: Private, Self-Hosted SMS Gateway
 
-**SMSFlare** is a professional, edge-powered SMS gateway that turns any Android device into a private SMS distribution node. No third-party carrier APIs, no per-message fees — just your hardware, your SIM cards, and complete infrastructure ownership.
+**SMSFlare** is a professional, edge-powered SMS gateway that transforms your Android devices into a private SMS distribution network. Unlike commercial providers, SMSFlare is **entirely self-hosted**—your messages never pass through a third-party server. You own the hardware, the SIM cards, and the entire data pipeline.
+
+---
+
+## Why SMSFlare?
+
+- **Absolute Privacy**: Your messages are stored only in your own private Cloudflare D1 database. No third party (including us) can ever read your communications.
+- **Zero Middlemen**: Route messages directly from your API to your phone. No carrier APIs, no intermediate aggregators, and no hidden data harvesting.
+- **Full Infrastructure Ownership**: You deploy the backend to your own Cloudflare account. You have 100% control over the logs, the retention, and the access.
+- **Zero Per-Message Fees**: Pay only for your phone plan. Stop paying "convenience" fees to gateway providers for every single text you send.
+
+---
+
+## Key Features
+
+- **Multi-Device Support**: Connect an unlimited number of Android phones to your private backend to increase throughput.
+- **Smart Job Distribution**: Messages are automatically routed to the most recently active and available device in your fleet.
+- **Real-Time Telemetry**: Monitor battery levels, signal strength (RSSI), and carrier information for every connected device.
+- **API-First Design**: Seamlessly integrate private SMS sending into your existing applications with a simple REST API.
+- **Secure QR Pairing**: Instantly provision new devices by scanning a secure QR code from your dashboard.
+- **Detailed Delivery Logs**: Track the full lifecycle of every message with a detailed event timeline that you control.
+- **Edge Performance**: Powered by Cloudflare Workers and D1 for ultra-low latency and global availability on your own account.
+- **Native Android Client**: Built with Kotlin for reliability, featuring background persistence and automatic recovery.
 
 ---
 
 ## How it Works
 
-1.  **Backend (Edge)**: A Cloudflare Worker manages the message queue, device heartbeats, and API authentication.
-2.  **Database (Global)**: Cloudflare D1 (SQLite) stores jobs, logs, and device metadata at the edge.
-3.  **Dashboard (Web)**: A Next.js interface for managing devices, monitoring status, and sending messages.
-4.  **Android Client**: A native app that polls the backend for assigned jobs and sends them via the device's SIM card.
+1.  **Your Backend (Edge)**: A Cloudflare Worker (in your account) manages the message queue, device heartbeats, and API authentication.
+2.  **Your Database (Global)**: Cloudflare D1 (SQLite) stores jobs, logs, and device metadata securely on your infrastructure.
+3.  **Your Dashboard (Web)**: A Next.js interface for managing devices, monitoring status, and sending messages.
+4.  **Your Android Client**: A native app that polls your backend for assigned jobs and sends them via the device's SIM card.
 
 ---
 
@@ -26,7 +48,7 @@ Before you begin, ensure you have:
 
 ## One-Click Setup
 
-The included `setup.sh` script automates the entire process — from creating databases to deploying the edge infrastructure.
+The included `setup.sh` script automates the entire process — from creating databases to deploying the edge infrastructure to your own account.
 
 ```bash
 git clone https://github.com/RAN-GAN/smsFlare.git
@@ -38,14 +60,14 @@ chmod +x setup.sh
 ### Choose your path:
 
 #### **Option 1: Cloudflare Deployment (Production)**
-This is the recommended setup and the **default choice**. It deploys the system to Cloudflare's global network.
+This is the recommended setup and the **default choice**. It deploys the system to **your** Cloudflare global network.
 1.  Select **Mode 1** (or just press **Enter**) in the setup script.
 2.  The script will:
     *   Authenticate with Cloudflare.
-    *   Create your **D1 Database**.
-    *   Deploy the **Worker Backend**.
+    *   Create **your** D1 Database.
+    *   Deploy **your** Worker Backend.
     *   Generate a secure **JWT Secret**.
-    *   Deploy the **Management Dashboard** to Cloudflare Pages.
+    *   Deploy **your** Management Dashboard to Cloudflare Pages.
 3.  Once finished, you will receive your live **Dashboard URL**.
 
 #### **Option 2: Local Development**
@@ -62,15 +84,16 @@ Ideal for testing or modification.
 
 ---
 
-## Setting up the Android Client
+## Scaling with Multiple Devices
 
-1.  **Download the App**: You can find the `smsflare.apk` in the root of this project or download it directly from your dashboard's "Start" page once deployed.
-2.  **Install**: Sideload the APK onto your Android device.
-3.  **Pairing**:
-    *   On your Dashboard, go to **Settings** → **Generate Pairing Token**.
-    *   Open the SMSFlare app on Android and tap **Scan QR Code**.
-    *   Grant the required permissions (**Send SMS**, **Read Phone State**).
-4.  **Stay Online**: The app will now start sending heartbeats and checking for jobs.
+SMSFlare is designed to scale horizontally. You can add as many Android devices as you need to handle high volumes of SMS.
+
+1.  **Install the App**: Sideload `smsflare.apk` onto each Android device.
+2.  **Generate Pairing Token**: In your Dashboard, go to **Settings** → **Generate Pairing Token**.
+3.  **Pair Each Device**: Scan the QR code on every phone. Each device will register with a unique ID.
+4.  **Automatic Balancing**: When you send an SMS via the API, your backend automatically identifies all online devices and assigns the job to the one that checked in most recently.
+
+This allows you to distribute load across different carriers or physical locations easily, all while keeping data within your control.
 
 ---
 
@@ -93,7 +116,7 @@ curl -X POST https://your-worker.workers.dev/api/sms/send \
 
 ---
 
-## Maintenance & Scaling
+## Maintenance & Monitoring
 
 ### Database Migrations
 If you update the schema, apply migrations to production:
@@ -101,11 +124,10 @@ If you update the schema, apply migrations to production:
 wrangler d1 migrations apply smsflare --env production --remote
 ```
 
-### Scaling to Multiple Devices
-SMSFlare automatically distributes jobs based on device availability and heartbeat recency. Simply repeat the **Pairing** steps for additional Android devices to increase your throughput.
-
-### Monitoring
-Check the **Logs** tab in the dashboard for real-time delivery status and device signal/battery history.
+### Monitoring Health
+- **Dashboard**: View real-time status, battery, and signal for all devices.
+- **Logs**: Check the **Logs** tab in the dashboard for real-time delivery status and device history.
+- **API**: Use `GET /api/jobs` and `GET /api/devices` to monitor your infrastructure programmatically.
 
 ---
 
@@ -117,4 +139,4 @@ Check the **Logs** tab in the dashboard for real-time delivery status and device
 
 ---
 
-Built for privacy and performance. **SMSFlare** — Your SIM, your rules.
+Built for absolute privacy and performance. **SMSFlare** — Your SIM, your rules.

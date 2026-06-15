@@ -38,8 +38,8 @@ chmod +x setup.sh
 ### Choose your path:
 
 #### **Option 1: Cloudflare Deployment (Production)**
-This is the recommended setup. It deploys the system to Cloudflare's global network.
-1.  Select **Mode 2** in the setup script.
+This is the recommended setup and the **default choice**. It deploys the system to Cloudflare's global network.
+1.  Select **Mode 2** (or just press **Enter**) in the setup script.
 2.  The script will:
     *   Authenticate with Cloudflare.
     *   Create your **D1 Database**.

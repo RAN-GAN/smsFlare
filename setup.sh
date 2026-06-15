@@ -95,10 +95,12 @@ divider
 printf "\n"
 printf "  Choose a mode:\n\n"
 printf "    ${BLD}1${NC}  Local development  — run backend and dashboard on this machine\n"
-printf "    ${BLD}2${NC}  Cloudflare deploy  — Workers (backend) + D1 (database) + Pages (dashboard)\n"
+printf "    ${BLD}2${NC}  Cloudflare deploy  — Workers (backend) + D1 (database) + Pages (dashboard) ${GRY}(default)${NC}\n"
 printf "\n"
-read -rp "  Mode (1 or 2): " MODE
+read -rp "  Mode (1 or 2, default: 2): " MODE
 printf "\n"
+
+MODE=${MODE:-2}
 
 case "$MODE" in
   1) printf "  ${GRY}Local development mode${NC}\n" ;;

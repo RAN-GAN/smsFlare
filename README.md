@@ -39,7 +39,7 @@ chmod +x setup.sh
 
 #### **Option 1: Cloudflare Deployment (Production)**
 This is the recommended setup and the **default choice**. It deploys the system to Cloudflare's global network.
-1.  Select **Mode 2** (or just press **Enter**) in the setup script.
+1.  Select **Mode 1** (or just press **Enter**) in the setup script.
 2.  The script will:
     *   Authenticate with Cloudflare.
     *   Create your **D1 Database**.
@@ -50,7 +50,7 @@ This is the recommended setup and the **default choice**. It deploys the system 
 
 #### **Option 2: Local Development**
 Ideal for testing or modification.
-1.  Select **Mode 1** in the setup script.
+1.  Select **Mode 2** in the setup script.
 2.  Start the servers:
     ```bash
     # Terminal 1: Backend

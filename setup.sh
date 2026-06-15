@@ -94,22 +94,22 @@ printf "  ${BLD}SMS Flare${NC}  —  setup & deploy\n"
 divider
 printf "\n"
 printf "  Choose a mode:\n\n"
-printf "    ${BLD}1${NC}  Local development  — run backend and dashboard on this machine\n"
-printf "    ${BLD}2${NC}  Cloudflare deploy  — Workers (backend) + D1 (database) + Pages (dashboard) ${GRY}(default)${NC}\n"
+printf "    ${BLD}1${NC}  Cloudflare deploy  — Workers (backend) + D1 (database) + Pages (dashboard) ${GRY}(default)${NC}\n"
+printf "    ${BLD}2${NC}  Local development  — run backend and dashboard on this machine\n"
 printf "\n"
-read -rp "  Mode (1 or 2, default: 2): " MODE
+read -rp "  Mode (1 or 2, default: 1): " MODE
 printf "\n"
 
-MODE=${MODE:-2}
+MODE=${MODE:-1}
 
 case "$MODE" in
-  1) printf "  ${GRY}Local development mode${NC}\n" ;;
-  2) printf "  ${GRY}Cloudflare deployment mode${NC}\n" ;;
+  1) printf "  ${GRY}Cloudflare deployment mode${NC}\n" ;;
+  2) printf "  ${GRY}Local development mode${NC}\n" ;;
   *) fail "Invalid choice — enter 1 or 2" ;;
 esac
 
 # ── Credentials (deploy only) ─────────────────────────────────────────────────
-if [ "$MODE" = "2" ]; then
+if [ "$MODE" = "1" ]; then
   section "Cloudflare credentials"
 
   if [ -z "${CLOUDFLARE_API_TOKEN:-}" ]; then
@@ -160,7 +160,7 @@ run "Installing backend dependencies" npm install --silent --progress=false
 WORKER_URL=""
 PAGES_URL=""
 
-if [ "$MODE" = "2" ]; then
+if [ "$MODE" = "1" ]; then
   section "Database"
 
   if try_run "Creating D1 database" wrangler d1 create smsflare; then
@@ -194,18 +194,18 @@ fi
 # ── Migrations ────────────────────────────────────────────────────────────────
 section "Migrations"
 
-if [ "$MODE" = "1" ]; then
+if [ "$MODE" = "2" ]; then
   run "Applying local migrations" \
     env CI=true wrangler d1 migrations apply smsflare
 fi
 
-if [ "$MODE" = "2" ]; then
+if [ "$MODE" = "1" ]; then
   run "Applying migrations" \
     env CI=true wrangler d1 migrations apply smsflare --env production --remote
 fi
 
 # ── Backend deploy (deploy only) ──────────────────────────────────────────────
-if [ "$MODE" = "2" ]; then
+if [ "$MODE" = "1" ]; then
   section "Backend"
 
   run "Deploying to Cloudflare Workers" wrangler deploy --env production
@@ -267,7 +267,7 @@ cd dashboard
 
 run "Installing dashboard dependencies" npm install --silent --progress=false
 
-if [ "$MODE" = "2" ]; then
+if [ "$MODE" = "1" ]; then
   printf "NEXT_PUBLIC_API_URL=%s\n" "$WORKER_URL" > .env.production
   ok ".env.production written"
 fi
@@ -279,12 +279,12 @@ else
   skip ".env.local already exists"
 fi
 
-if [ "$MODE" = "2" ]; then
+if [ "$MODE" = "1" ]; then
   run "Building dashboard" env "NEXT_PUBLIC_API_URL=$WORKER_URL" npm run build
 fi
 
 # ── Pages deploy (deploy only) ────────────────────────────────────────────────
-if [ "$MODE" = "2" ]; then
+if [ "$MODE" = "1" ]; then
   section "Dashboard deployment"
 
   # Create Pages project — ignore failure if it already exists
@@ -313,7 +313,7 @@ fi
 cd ..
 
 # ── Update wrangler.toml with live URLs and redeploy (deploy only) ────────────
-if [ "$MODE" = "2" ] && [ -n "$WORKER_URL" ]; then
+if [ "$MODE" = "1" ] && [ -n "$WORKER_URL" ]; then
   section "Finalizing"
 
   API_URL="$WORKER_URL" DASH_URL="${PAGES_URL:-}" node -e '
@@ -340,7 +340,7 @@ fi
 printf "\n"
 divider
 
-if [ "$MODE" = "2" ]; then
+if [ "$MODE" = "1" ]; then
   printf "\n  ${GRN}${BLD}Deployment complete${NC}\n\n"
   divider
   printf "\n"

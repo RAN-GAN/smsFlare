@@ -51,4 +51,8 @@ object DevicePrefs {
 
     fun getSubscriptionIdBlocking(context: Context): Int? =
         runBlocking { getSubscriptionId(context) }
+
+    suspend fun clear(context: Context) {
+        context.dataStore.edit { it.clear() }
+    }
 }

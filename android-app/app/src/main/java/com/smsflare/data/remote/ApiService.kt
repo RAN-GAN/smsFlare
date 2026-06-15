@@ -22,6 +22,9 @@ interface ApiService {
         @Header("Authorization") token: String,
         @Body body: HeartbeatPayload
     ): Response<Unit>
+
+    @DELETE("api/device/self")
+    suspend fun unpair(@Header("Authorization") token: String): Response<Unit>
 }
 
 data class RegisterRequest(

@@ -47,14 +47,32 @@ export const smsApi = {
             body: JSON.stringify({ to, message }),
         }),
 
-    getJobs: (limit, offset) =>
-        apiCall(`/api/jobs?limit=${limit}&offset=${offset}`),
+    sendBatch: (messages) =>
+        apiCall('/api/sms/send/batch', {
+            method: 'POST',
+            body: JSON.stringify({ messages }),
+        }),
+
+    getJobs: (limit, offset, status) => {
+        const params = new URLSearchParams({ limit, offset });
+        if (status) params.set('status', status);
+        return apiCall(`/api/jobs?${params}`);
+    },
 
     getJob: (jobId) =>
         apiCall(`/api/jobs/${jobId}`),
 
+    cancelJob: (jobId) =>
+        apiCall(`/api/jobs/${jobId}`, { method: 'DELETE' }),
+
     getDevices: () =>
         apiCall('/api/devices'),
+
+    getDevice: (deviceId) =>
+        apiCall(`/api/devices/${deviceId}`),
+
+    getStats: () =>
+        apiCall('/api/stats'),
 };
 
 // Device API functions
@@ -68,13 +86,17 @@ export const deviceApi = {
 
 // API Key functions
 export const apiKeyApi = {
-    create: () =>
+    create: (expires_in_days) =>
         apiCall('/auth/api-keys', {
             method: 'POST',
+            body: JSON.stringify(expires_in_days ? { expires_in_days } : {}),
         }),
 
     list: () =>
         apiCall('/auth/api-keys'),
+
+    revoke: (keyId) =>
+        apiCall(`/auth/api-keys/${keyId}`, { method: 'DELETE' }),
 };
 
 // Device pairing + account management

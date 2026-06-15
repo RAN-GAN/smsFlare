@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
-import { signJWT, hashPassword, verifyPassword } from './utils/jwt.js';
+import { signJWT, hashPassword, verifyPassword, hashApiKey } from './utils/jwt.js';
 import { generateId, now, isValidPhoneNumber, isValidEmail, findAvailableDevice, getPaginationParams } from './utils/db.js';
 import { verifyUserToken, verifyDeviceToken, verifyApiKey, verifyUserOrApiKey, requireAuth } from './middleware/auth.js';
 
@@ -405,7 +405,96 @@ app.post('/api/device/jobs/:id/status', verifyDeviceToken, async (c) => {
   }
 });
 
+app.delete('/api/device/self', verifyDeviceToken, async (c) => {
+  try {
+    const deviceId = c.get('device_id');
+    const db = c.env.DB;
+    await db.prepare('DELETE FROM device_heartbeats WHERE device_id = ?').bind(deviceId).run();
+    await db.prepare('DELETE FROM devices WHERE id = ?').bind(deviceId).run();
+    return c.json({ success: true });
+  } catch (e) {
+    console.error('Device unpair error:', e);
+    return c.json({ error: 'Failed to unpair device' }, 500);
+  }
+});
+
+app.post('/api/device/token/refresh', verifyDeviceToken, async (c) => {
+  try {
+    const deviceId = c.get('device_id');
+    const db = c.env.DB;
+    const newToken = generateId();
+    const timestamp = now();
+
+    await db
+      .prepare('UPDATE devices SET device_token = ?, updated_at = ? WHERE id = ?')
+      .bind(newToken, timestamp, deviceId)
+      .run();
+
+    return c.json({ device_token: newToken, rotated_at: timestamp });
+  } catch (e) {
+    console.error('Token refresh error:', e);
+    return c.json({ error: 'Failed to refresh device token' }, 500);
+  }
+});
+
 // ==================== SMS ROUTES ====================
+
+app.post('/api/sms/send/batch', verifyUserOrApiKey, async (c) => {
+  try {
+    const userId = c.get('user_id');
+    const { messages } = await c.req.json();
+    const db = c.env.DB;
+
+    if (!Array.isArray(messages) || messages.length === 0) {
+      return c.json({ error: 'messages must be a non-empty array' }, 400);
+    }
+    if (messages.length > 50) {
+      return c.json({ error: 'messages array must not exceed 50 items' }, 400);
+    }
+
+    for (let i = 0; i < messages.length; i++) {
+      const { to, message } = messages[i];
+      if (!to || !isValidPhoneNumber(to)) {
+        return c.json({ error: `Invalid phone number at index ${i}`, index: i }, 400);
+      }
+      if (!message || message.length === 0 || message.length > 160) {
+        return c.json({ error: `Message must be 1-160 characters at index ${i}`, index: i }, 400);
+      }
+    }
+
+    const device = await findAvailableDevice(db, userId);
+    const timestamp = now();
+    const status = device ? 'assigned' : 'pending';
+    const assignedAt = device ? timestamp : null;
+
+    const jobIds = messages.map(() => generateId());
+    const stmts = messages.map(({ to, message }, i) =>
+      db
+        .prepare(
+          `INSERT INTO sms_jobs (id, user_id, device_id, recipient, message, status, created_at, assigned_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        )
+        .bind(jobIds[i], userId, device?.id ?? null, to, message, status, timestamp, assignedAt, timestamp)
+    );
+
+    await db.batch(stmts);
+
+    return c.json(
+      {
+        results: jobIds.map((job_id) => ({
+          job_id,
+          status,
+          assigned_device: device?.id ?? null,
+        })),
+        count: messages.length,
+      },
+      201
+    );
+  } catch (e) {
+    console.error('Batch SMS send error:', e);
+    return c.json({ error: 'Failed to send batch SMS' }, 500);
+  }
+});
 
 app.post('/api/sms/send', verifyUserOrApiKey, async (c) => {
   try {
@@ -471,27 +560,38 @@ app.post('/api/sms/send', verifyUserOrApiKey, async (c) => {
 app.get('/api/jobs', verifyUserToken, async (c) => {
   try {
     const userId = c.get('user_id');
-    const { limit, offset } = c.req.query();
+    const { limit, offset, status } = c.req.query();
     const db = c.env.DB;
+
+    const validStatuses = ['pending', 'assigned', 'sent', 'delivered', 'failed'];
+    if (status && !validStatuses.includes(status)) {
+      return c.json({ error: 'Invalid status filter' }, 400);
+    }
 
     const { limit: pageLimit, offset: pageOffset } = getPaginationParams(
       limit ? parseInt(limit) : 20,
       offset ? parseInt(offset) : 0
     );
 
-    const result = await db
-      .prepare(
-        `SELECT id, recipient, message, status, created_at, sent_at, delivered_at 
-         FROM sms_jobs 
-         WHERE user_id = ? 
-         ORDER BY created_at DESC 
+    const whereClause = status ? 'WHERE user_id = ? AND status = ?' : 'WHERE user_id = ?';
+    const baseBinds = status ? [userId, status] : [userId];
+
+    const [countResult, jobsResult] = await db.batch([
+      db.prepare(`SELECT COUNT(*) as total FROM sms_jobs ${whereClause}`).bind(...baseBinds),
+      db.prepare(
+        `SELECT id, recipient, message, status, created_at, sent_at, delivered_at
+         FROM sms_jobs
+         ${whereClause}
+         ORDER BY created_at DESC
          LIMIT ? OFFSET ?`
-      )
-      .bind(userId, pageLimit, pageOffset)
-      .all();
+      ).bind(...baseBinds, pageLimit, pageOffset),
+    ]);
 
     return c.json({
-      jobs: result.results || [],
+      jobs: jobsResult.results || [],
+      total: countResult.results[0]?.total ?? 0,
+      limit: pageLimit,
+      offset: pageOffset,
     });
   } catch (e) {
     console.error('Get jobs error:', e);
@@ -534,6 +634,39 @@ app.get('/api/jobs/:id', verifyUserToken, async (c) => {
   }
 });
 
+app.get('/api/stats', verifyUserToken, async (c) => {
+  try {
+    const userId = c.get('user_id');
+    const db = c.env.DB;
+
+    const todayStart = Math.floor(new Date().setUTCHours(0, 0, 0, 0) / 1000);
+
+    const [terminalRes, deliveredRes, pendingRes, todayRes, devicesRes] = await db.batch([
+      db.prepare(`SELECT COUNT(*) as c FROM sms_jobs WHERE user_id = ? AND status IN ('sent','delivered','failed')`).bind(userId),
+      db.prepare(`SELECT COUNT(*) as c FROM sms_jobs WHERE user_id = ? AND status = 'delivered'`).bind(userId),
+      db.prepare(`SELECT COUNT(*) as c FROM sms_jobs WHERE user_id = ? AND status IN ('pending','assigned')`).bind(userId),
+      db.prepare(`SELECT COUNT(*) as c FROM sms_jobs WHERE user_id = ? AND created_at >= ?`).bind(userId, todayStart),
+      db.prepare(`SELECT COUNT(*) as total, SUM(CASE WHEN online = 1 THEN 1 ELSE 0 END) as online FROM devices WHERE user_id = ?`).bind(userId),
+    ]);
+
+    const terminal = terminalRes.results[0]?.c ?? 0;
+    const delivered = deliveredRes.results[0]?.c ?? 0;
+    const deviceRow = devicesRes.results[0] ?? {};
+
+    return c.json({
+      total_sent: terminal,
+      pending_jobs: pendingRes.results[0]?.c ?? 0,
+      jobs_today: todayRes.results[0]?.c ?? 0,
+      success_rate: terminal > 0 ? Math.round((delivered / terminal) * 100) : 0,
+      total_devices: deviceRow.total ?? 0,
+      online_devices: deviceRow.online ?? 0,
+    });
+  } catch (e) {
+    console.error('Get stats error:', e);
+    return c.json({ error: 'Failed to get stats' }, 500);
+  }
+});
+
 app.get('/api/devices', verifyUserToken, async (c) => {
   try {
     const userId = c.get('user_id');
@@ -567,18 +700,28 @@ app.post('/auth/api-keys', verifyUserToken, async (c) => {
   try {
     const userId = c.get('user_id');
     const db = c.env.DB;
+    const body = await c.req.json().catch(() => ({}));
+    const { expires_in_days } = body;
+
+    let expiresAt = null;
+    if (expires_in_days !== undefined) {
+      if (!Number.isInteger(expires_in_days) || expires_in_days <= 0 || expires_in_days > 3650) {
+        return c.json({ error: 'expires_in_days must be a positive integer (max 3650)' }, 400);
+      }
+      expiresAt = now() + expires_in_days * 86400;
+    }
 
     const apiKey = generateId() + '-' + generateId();
-    const keyHash = await hashPassword(apiKey);
+    const keyHash = await hashApiKey(apiKey);
     const keyPreview = apiKey.slice(0, 8) + '...';
     const timestamp = now();
 
     await db
       .prepare(
-        `INSERT INTO api_keys (id, user_id, key_hash, key_preview, created_at) 
-         VALUES (?, ?, ?, ?, ?)`
+        `INSERT INTO api_keys (id, user_id, key_hash, key_preview, created_at, expires_at)
+         VALUES (?, ?, ?, ?, ?, ?)`
       )
-      .bind(generateId(), userId, keyHash, keyPreview, timestamp)
+      .bind(generateId(), userId, keyHash, keyPreview, timestamp, expiresAt)
       .run();
 
     return c.json(
@@ -586,6 +729,7 @@ app.post('/auth/api-keys', verifyUserToken, async (c) => {
         api_key: apiKey,
         preview: keyPreview,
         created_at: timestamp,
+        expires_at: expiresAt,
       },
       201
     );
@@ -614,6 +758,66 @@ app.get('/auth/api-keys', verifyUserToken, async (c) => {
   }
 });
 
+app.delete('/auth/api-keys/:id', verifyUserToken, async (c) => {
+  try {
+    const userId = c.get('user_id');
+    const keyId = c.req.param('id');
+    const db = c.env.DB;
+
+    const key = await db
+      .prepare('SELECT id FROM api_keys WHERE id = ? AND user_id = ?')
+      .bind(keyId, userId)
+      .first();
+
+    if (!key) {
+      return c.json({ error: 'API key not found' }, 404);
+    }
+
+    await db.prepare('DELETE FROM api_keys WHERE id = ? AND user_id = ?').bind(keyId, userId).run();
+
+    return c.json({ success: true });
+  } catch (e) {
+    console.error('Delete API key error:', e);
+    return c.json({ error: 'Failed to delete API key' }, 500);
+  }
+});
+
+app.get('/api/devices/:id', verifyUserToken, async (c) => {
+  try {
+    const userId = c.get('user_id');
+    const deviceId = c.req.param('id');
+    const db = c.env.DB;
+
+    const device = await db
+      .prepare(
+        `SELECT id, device_model, android_version, phone_number, battery_level, sim_info, online, last_heartbeat, created_at
+         FROM devices WHERE id = ? AND user_id = ?`
+      )
+      .bind(deviceId, userId)
+      .first();
+
+    if (!device) {
+      return c.json({ error: 'Device not found' }, 404);
+    }
+
+    const heartbeatsResult = await db
+      .prepare(
+        `SELECT battery_level, signal_strength, sim_status, app_version, created_at
+         FROM device_heartbeats WHERE device_id = ? ORDER BY created_at DESC LIMIT 10`
+      )
+      .bind(deviceId)
+      .all();
+
+    return c.json({
+      device: { ...device, online: device.online === 1 },
+      heartbeats: heartbeatsResult.results || [],
+    });
+  } catch (e) {
+    console.error('Get device error:', e);
+    return c.json({ error: 'Failed to get device' }, 500);
+  }
+});
+
 // ==================== DEVICE MANAGEMENT ROUTES ====================
 
 app.delete('/api/devices/:id', verifyUserToken, async (c) => {
@@ -639,6 +843,53 @@ app.delete('/api/devices/:id', verifyUserToken, async (c) => {
   } catch (e) {
     console.error('Delete device error:', e);
     return c.json({ error: 'Failed to delete device' }, 500);
+  }
+});
+
+app.delete('/api/jobs/:id', verifyUserToken, async (c) => {
+  try {
+    const userId = c.get('user_id');
+    const jobId = c.req.param('id');
+    const db = c.env.DB;
+
+    const job = await db
+      .prepare('SELECT id, status FROM sms_jobs WHERE id = ? AND user_id = ?')
+      .bind(jobId, userId)
+      .first();
+
+    if (!job) {
+      return c.json({ error: 'Job not found' }, 404);
+    }
+
+    if (['sent', 'delivered', 'failed'].includes(job.status)) {
+      return c.json({ error: 'Job cannot be cancelled', current_status: job.status }, 409);
+    }
+
+    const timestamp = now();
+    const result = await db
+      .prepare(
+        `UPDATE sms_jobs SET status = 'failed', updated_at = ?
+         WHERE id = ? AND user_id = ? AND status IN ('pending', 'assigned')`
+      )
+      .bind(timestamp, jobId, userId)
+      .run();
+
+    if (result.meta.changes === 0) {
+      return c.json({ error: 'Job status changed before cancellation could complete' }, 409);
+    }
+
+    await db
+      .prepare(
+        `INSERT INTO sms_logs (id, job_id, status, timestamp, error_message, created_at)
+         VALUES (?, ?, 'failed', ?, 'Cancelled by user', ?)`
+      )
+      .bind(generateId(), jobId, timestamp, timestamp)
+      .run();
+
+    return c.json({ success: true });
+  } catch (e) {
+    console.error('Cancel job error:', e);
+    return c.json({ error: 'Failed to cancel job' }, 500);
   }
 });
 

@@ -28,6 +28,10 @@ class DeviceRepository(private val context: Context) {
         return ApiClient.create(baseUrl).register(request)
     }
 
+    suspend fun unpair(baseUrl: String, deviceToken: String) {
+        ApiClient.create(baseUrl).unpair("Bearer $deviceToken")
+    }
+
     suspend fun pollJob(baseUrl: String, deviceToken: String): JobResponse? {
         AppLogger.info("Poll", "→ GET /api/device/jobs")
         val response = ApiClient.create(baseUrl).pollJob("Bearer $deviceToken")

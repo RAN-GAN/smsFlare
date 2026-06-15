@@ -1,0 +1,1667 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SMS Flare — Self-Hosted SMS Gateway</title>
+  <meta name="description"
+    content="Turn any Android phone into an SMS gateway. No per-message fees, no third-party APIs. Self-hosted on Cloudflare Workers.">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="shortcut icon" href="favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Oxanium:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&family=Share+Tech+Mono&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --bg: #020604;
+      --surface: #060E08;
+      --surface-2: #0A160C;
+      --surface-3: #0F1F11;
+      --border: #112214;
+      --border-2: #1C3820;
+      --accent: #00FF7F;
+      --accent-2: #39D98A;
+      --accent-glow: rgba(0, 255, 127, 0.28);
+      --accent-dim: rgba(0, 255, 127, 0.10);
+      --accent-faint: rgba(0, 255, 127, 0.05);
+      --text-1: #E2F5EA;
+      --text-2: #7AAD8A;
+      --text-3: #426850;
+      --red: #FF5252;
+      --yellow: #FFD600;
+      --blue: #40CFFF;
+      --orange: #FF8C42;
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0
+    }
+
+    html {
+      scroll-behavior: smooth
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text-1);
+      font-family: 'DM Sans', system-ui, sans-serif;
+      font-size: 16px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    /* Scanline overlay */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 9999;
+      background: repeating-linear-gradient(to bottom, transparent 0, transparent 3px,
+          rgba(0, 0, 0, 0.05) 3px, rgba(0, 0, 0, 0.05) 4px);
+    }
+
+    /* Grain */
+    #grain {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 9998;
+      opacity: .025;
+      mix-blend-mode: screen
+    }
+
+    ::-webkit-scrollbar {
+      width: 3px
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border-2);
+      border-radius: 2px
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none
+    }
+
+    /* ── NAV ──────────────────────────────────────────────────── */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 48px;
+      transition: background .3s, border-color .3s;
+    }
+
+    nav.scrolled {
+      background: rgba(2, 6, 4, .92);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border-2);
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      font-family: 'Oxanium', sans-serif;
+      font-size: 14.5px;
+      font-weight: 700;
+      letter-spacing: .15em;
+      color: var(--text-1);
+    }
+
+    .logo-signal {
+      position: relative;
+      width: 12px;
+      height: 12px;
+      flex-shrink: 0
+    }
+
+    .logo-core {
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      top: 2px;
+      left: 2px;
+      box-shadow: 0 0 10px var(--accent-glow), 0 0 20px rgba(0, 255, 127, .15);
+      animation: core-pulse 2.4s ease-in-out infinite;
+    }
+
+    .logo-ring {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      border: 1.5px solid rgba(0, 255, 127, .35);
+      animation: ring-out 2.4s ease-out infinite;
+    }
+
+    @keyframes core-pulse {
+
+      0%,
+      100% {
+        transform: scale(1)
+      }
+
+      50% {
+        transform: scale(1.15)
+      }
+    }
+
+    @keyframes ring-out {
+      0% {
+        opacity: .7;
+        transform: scale(.7)
+      }
+
+      100% {
+        opacity: 0;
+        transform: scale(1.8)
+      }
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 28px;
+      list-style: none
+    }
+
+    .nav-links a {
+      font-size: 12.5px;
+      color: var(--text-3);
+      letter-spacing: .04em;
+      transition: color .15s;
+    }
+
+    .nav-links a:hover {
+      color: var(--text-2)
+    }
+
+    .nav-cta {
+      background: transparent !important;
+      color: var(--accent) !important;
+      font-family: 'Oxanium', sans-serif !important;
+      font-size: 11.5px !important;
+      font-weight: 700 !important;
+      letter-spacing: .12em !important;
+      padding: 7px 16px !important;
+      border: 1px solid rgba(0, 255, 127, .3) !important;
+      border-radius: 3px !important;
+      transition: background .2s, border-color .2s, box-shadow .2s !important;
+    }
+
+    .nav-cta:hover {
+      background: var(--accent-faint) !important;
+      border-color: rgba(0, 255, 127, .6) !important;
+      box-shadow: 0 0 16px rgba(0, 255, 127, .12) !important;
+    }
+
+    /* ── HERO ─────────────────────────────────────────────────── */
+    .hero {
+      position: relative;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 130px 24px 80px;
+      overflow: hidden;
+    }
+
+    /* Dot-grid background */
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        radial-gradient(circle, rgba(0, 255, 127, .13) 1px, transparent 1px),
+        radial-gradient(circle, rgba(0, 255, 127, .07) 1px, transparent 1px);
+      background-size: 48px 48px, 48px 48px;
+      background-position: 0 0, 24px 24px;
+      mask-image: radial-gradient(ellipse 75% 60% at 50% 40%, black 25%, transparent 100%);
+      -webkit-mask-image: radial-gradient(ellipse 75% 60% at 50% 40%, black 25%, transparent 100%);
+    }
+
+    /* Central glow */
+    .hero-glow {
+      position: absolute;
+      width: 1000px;
+      height: 1000px;
+      background: radial-gradient(circle, rgba(0, 255, 127, .06) 0%, transparent 65%);
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -62%);
+      pointer-events: none;
+    }
+
+    .hero-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 11px;
+      color: var(--accent);
+      letter-spacing: .16em;
+      text-transform: uppercase;
+      margin-bottom: 32px;
+      padding: 6px 14px 6px 10px;
+      border: 1px solid rgba(0, 255, 127, .2);
+      border-radius: 3px;
+      background: rgba(0, 255, 127, .04);
+      position: relative;
+      z-index: 1;
+      opacity: 0;
+      animation: fadeup .8s ease forwards .1s;
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent);
+      animation: dot-blink 2s step-end infinite;
+    }
+
+    @keyframes dot-blink {
+
+      0%,
+      100% {
+        opacity: 1
+      }
+
+      50% {
+        opacity: .25
+      }
+    }
+
+    .hero-title {
+      font-family: 'Oxanium', sans-serif;
+      font-size: clamp(46px, 9vw, 102px);
+      font-weight: 800;
+      line-height: .95;
+      letter-spacing: -.025em;
+      color: var(--text-1);
+      margin-bottom: 26px;
+      max-width: 920px;
+      position: relative;
+      z-index: 1;
+      opacity: 0;
+      animation: fadeup .9s ease forwards .25s;
+    }
+
+    .hero-title .hl {
+      color: var(--accent);
+      text-shadow: 0 0 30px rgba(0, 255, 127, .45), 0 0 70px rgba(0, 255, 127, .15);
+      transition: text-shadow .3s ease, color .3s ease;
+      cursor: default;
+    }
+
+    .hero-title .hl:hover {
+      color: #fff;
+      text-shadow:
+        0 0 12px rgba(0, 255, 127, 1),
+        0 0 30px rgba(0, 255, 127, .85),
+        0 0 70px rgba(0, 255, 127, .5),
+        0 0 140px rgba(0, 255, 127, .25);
+    }
+
+    .hero-sub {
+      font-size: clamp(15px, 2vw, 18px);
+      color: var(--text-2);
+      max-width: 460px;
+      line-height: 1.8;
+      margin-bottom: 42px;
+      font-weight: 300;
+      position: relative;
+      z-index: 1;
+      opacity: 0;
+      animation: fadeup .9s ease forwards .4s;
+    }
+
+    .hero-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-bottom: 60px;
+      position: relative;
+      z-index: 1;
+      opacity: 0;
+      animation: fadeup .9s ease forwards .55s;
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: var(--accent);
+      color: #020604;
+      font-family: 'Oxanium', sans-serif;
+      font-weight: 700;
+      font-size: 12.5px;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      padding: 13px 28px;
+      border-radius: 3px;
+      transition: box-shadow .2s, transform .15s;
+      border: none;
+      cursor: pointer;
+    }
+
+    .btn-primary:hover {
+      box-shadow: 0 0 36px rgba(0, 255, 127, .45), 0 4px 20px rgba(0, 255, 127, .2);
+      transform: translateY(-2px);
+    }
+
+    .btn-ghost {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: transparent;
+      color: var(--text-2);
+      font-family: 'Oxanium', sans-serif;
+      font-size: 12.5px;
+      font-weight: 600;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      padding: 12px 24px;
+      border: 1px solid var(--border-2);
+      border-radius: 3px;
+      transition: border-color .2s, color .2s, background .2s;
+    }
+
+    .btn-ghost:hover {
+      border-color: rgba(0, 255, 127, .3);
+      color: var(--text-1);
+      background: var(--accent-faint);
+    }
+
+    /* Terminal */
+    .hero-terminal {
+      background: var(--surface);
+      border: 1px solid var(--border-2);
+      border-radius: 6px;
+      overflow: hidden;
+      max-width: 680px;
+      width: 100%;
+      text-align: left;
+      position: relative;
+      z-index: 1;
+      box-shadow: 0 0 0 1px rgba(0, 255, 127, .04) inset, 0 40px 80px rgba(0, 0, 0, .5);
+      opacity: 0;
+      animation: fadeup .9s ease forwards .7s;
+    }
+
+    .term-hdr {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 10px 16px;
+      background: var(--surface-2);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .term-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%
+    }
+
+    .term-label {
+      margin-left: 6px;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 10.5px;
+      color: var(--text-3);
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+
+    .term-body {
+      padding: 22px 24px;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 12.5px;
+      line-height: 1.9;
+      color: var(--text-2);
+    }
+
+    .tc {
+      color: var(--text-3)
+    }
+
+    .tk {
+      color: var(--blue)
+    }
+
+    .ts {
+      color: var(--accent-2)
+    }
+
+    .tg {
+      color: var(--accent)
+    }
+
+    .tp {
+      color: var(--orange)
+    }
+
+    .tw {
+      color: var(--text-1)
+    }
+
+    .tpr {
+      color: var(--accent);
+      opacity: .45;
+      user-select: none
+    }
+
+    /* ── STATS BAR ────────────────────────────────────────────── */
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      background: var(--surface);
+      border-top: 1px solid var(--border-2);
+      border-bottom: 1px solid var(--border-2);
+    }
+
+    .stat {
+      padding: 38px 24px;
+      text-align: center;
+      border-right: 1px solid var(--border);
+      position: relative;
+    }
+
+    .stat:last-child {
+      border-right: none
+    }
+
+    .stat::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 36px;
+      height: 2px;
+      background: var(--accent);
+      opacity: .4;
+    }
+
+    .stat-n {
+      font-family: 'Oxanium', sans-serif;
+      font-size: 44px;
+      font-weight: 800;
+      color: var(--accent);
+      line-height: 1;
+      margin-bottom: 8px;
+      letter-spacing: -.02em;
+      text-shadow: 0 0 20px rgba(0, 255, 127, .3);
+    }
+
+    .stat-l {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 10.5px;
+      color: var(--text-3);
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+
+    /* ── COMMON LAYOUT ────────────────────────────────────────── */
+    .wrap {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 0 24px
+    }
+
+    .sect {
+      padding: 100px 0
+    }
+
+    .section-label {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 11px;
+      color: var(--accent);
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .section-label::after {
+      content: '';
+      flex: 0 0 40px;
+      height: 1px;
+      background: rgba(0, 255, 127, .3);
+    }
+
+    .h2 {
+      font-family: 'Oxanium', sans-serif;
+      font-size: clamp(30px, 4.5vw, 50px);
+      font-weight: 700;
+      color: var(--text-1);
+      line-height: 1.08;
+      letter-spacing: -.02em;
+      margin-bottom: 16px;
+    }
+
+    .sub {
+      font-size: 15.5px;
+      color: var(--text-2);
+      max-width: 480px;
+      line-height: 1.75
+    }
+
+    /* ── HOW IT WORKS ─────────────────────────────────────────── */
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      margin-top: 56px;
+    }
+
+    .step {
+      background: var(--surface);
+      padding: 40px 34px;
+      transition: background .2s;
+      position: relative;
+    }
+
+    .step:hover {
+      background: var(--surface-2)
+    }
+
+    .step::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--accent);
+      opacity: 0;
+      transition: opacity .2s;
+    }
+
+    .step:hover::before {
+      opacity: .4
+    }
+
+    .step-n {
+      font-family: 'Oxanium', sans-serif;
+      font-size: 72px;
+      font-weight: 800;
+      color: rgba(0, 255, 127, .07);
+      line-height: 1;
+      margin-bottom: 20px;
+      letter-spacing: -.04em;
+    }
+
+    .step-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 8px;
+      background: var(--accent-faint);
+      border: 1px solid rgba(0, 255, 127, .15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent);
+      margin-bottom: 16px;
+    }
+
+    .step-title {
+      font-family: 'Oxanium', sans-serif;
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--text-1);
+      margin-bottom: 10px;
+    }
+
+    .step-desc {
+      font-size: 13.5px;
+      color: var(--text-2);
+      line-height: 1.7
+    }
+
+    .step-tag {
+      display: inline-block;
+      margin-top: 18px;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 11.5px;
+      color: var(--accent);
+      background: var(--accent-faint);
+      border: 1px solid rgba(0, 255, 127, .14);
+      border-radius: 3px;
+      padding: 5px 10px;
+      letter-spacing: .04em;
+    }
+
+    /* ── SIGNAL FLOW ──────────────────────────────────────────── */
+    .flow-section {
+      background: var(--surface);
+      border-top: 1px solid var(--border-2);
+      border-bottom: 1px solid var(--border-2);
+      padding: 80px 24px;
+    }
+
+    .flow-hdr {
+      text-align: center;
+      margin-bottom: 52px
+    }
+
+    .flow-title-sm {
+      font-family: 'Oxanium', sans-serif;
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text-1);
+      letter-spacing: -.01em;
+    }
+
+    .flow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow-x: auto;
+      padding: 0 8px;
+    }
+
+    .flow-node {
+      background: var(--bg);
+      border: 1px solid var(--border-2);
+      border-radius: 8px;
+      padding: 20px 22px;
+      text-align: center;
+      min-width: 112px;
+      flex-shrink: 0;
+      transition: border-color .2s, box-shadow .2s;
+    }
+
+    .flow-node:hover {
+      border-color: rgba(0, 255, 127, .3);
+      box-shadow: 0 0 20px rgba(0, 255, 127, .08);
+    }
+
+    .flow-node.active {
+      border-color: rgba(0, 255, 127, .4);
+      background: var(--accent-faint);
+      box-shadow: 0 0 24px rgba(0, 255, 127, .1);
+    }
+
+    .flow-em {
+      width: 28px;
+      height: 28px;
+      margin: 0 auto 10px;
+      color: var(--accent-2);
+      flex-shrink: 0
+    }
+
+    .flow-em svg {
+      width: 100%;
+      height: 100%
+    }
+
+    .flow-node-title {
+      font-family: 'Oxanium', sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-1);
+      margin-bottom: 3px;
+    }
+
+    .flow-node-sub {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 9.5px;
+      color: var(--text-3);
+      letter-spacing: .04em;
+    }
+
+    .flow-connector {
+      flex: 0 0 52px;
+      display: flex;
+      align-items: center;
+      position: relative;
+      height: 2px;
+    }
+
+    .flow-line {
+      flex: 1;
+      height: 1.5px;
+      background: var(--border-2);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .flow-pulse {
+      position: absolute;
+      top: 0;
+      width: 28px;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      animation: pulse-run 2s linear infinite;
+    }
+
+    @keyframes pulse-run {
+      from {
+        left: -28px
+      }
+
+      to {
+        left: calc(100% + 28px)
+      }
+    }
+
+    .flow-arrow {
+      width: 0;
+      height: 0;
+      flex-shrink: 0;
+      border-top: 4px solid transparent;
+      border-bottom: 4px solid transparent;
+      border-left: 7px solid rgba(0, 255, 127, .45);
+    }
+
+    /* ── FEATURES ─────────────────────────────────────────────── */
+    .feat-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      margin-top: 56px;
+    }
+
+    .feat {
+      background: var(--surface);
+      padding: 32px 28px;
+      transition: background .2s;
+      position: relative;
+    }
+
+    .feat:hover {
+      background: var(--surface-2)
+    }
+
+    .feat::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1.5px;
+      background: var(--accent);
+      opacity: 0;
+      transition: opacity .2s;
+    }
+
+    .feat:hover::before {
+      opacity: .35
+    }
+
+    .feat-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      background: var(--accent-faint);
+      border: 1px solid rgba(0, 255, 127, .14);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent);
+      margin-bottom: 16px;
+    }
+
+    .feat-title {
+      font-family: 'Oxanium', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-1);
+      margin-bottom: 8px;
+    }
+
+    .feat-desc {
+      font-size: 13.5px;
+      color: var(--text-2);
+      line-height: 1.65
+    }
+
+    /* ── API SECTION ──────────────────────────────────────────── */
+    .api-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 72px;
+      align-items: start;
+    }
+
+    .ep-list {
+      list-style: none;
+      margin-top: 32px
+    }
+
+    .ep-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 14px;
+      color: var(--text-2);
+    }
+
+    .ep-list li:last-child {
+      border-bottom: none
+    }
+
+    .ep-check {
+      color: var(--accent);
+      font-size: 14px;
+      flex-shrink: 0;
+      margin-top: 2px;
+      line-height: 1.5
+    }
+
+    .ep-name {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 12px;
+      color: var(--text-1);
+      margin-right: 8px;
+    }
+
+    .api-code {
+      background: var(--surface);
+      border: 1px solid var(--border-2);
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, .4),
+        0 0 0 1px rgba(0, 255, 127, .04) inset;
+      position: sticky;
+      top: 76px;
+    }
+
+    .api-code-hdr {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 18px;
+      background: var(--surface-2);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .code-dots {
+      display: flex;
+      gap: 6px
+    }
+
+    .code-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%
+    }
+
+    .api-code-body {
+      padding: 22px;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 12px;
+      line-height: 1.9;
+      overflow-x: auto;
+      color: var(--text-2);
+    }
+
+    /* ── DEPLOY ───────────────────────────────────────────────── */
+    .deploy-wrap {
+      background: var(--surface);
+      border-top: 1px solid var(--border-2);
+      border-bottom: 1px solid var(--border-2);
+      padding: 96px 24px;
+      text-align: center;
+    }
+
+    .deploy-box {
+      background: var(--bg);
+      border: 1px solid var(--border-2);
+      border-radius: 8px;
+      overflow: hidden;
+      max-width: 660px;
+      margin: 48px auto 0;
+      text-align: left;
+      box-shadow: 0 0 0 1px rgba(0, 255, 127, .04) inset;
+    }
+
+    .deploy-hdr {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 12px 18px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .deploy-mono {
+      margin-left: 6px;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 10.5px;
+      color: var(--text-3);
+      letter-spacing: .08em;
+    }
+
+    .deploy-body {
+      padding: 22px;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 13px;
+      line-height: 2;
+    }
+
+    .dl {
+      display: flex;
+      align-items: center;
+      gap: 14px
+    }
+
+    .dl-n {
+      color: var(--border-2);
+      user-select: none;
+      min-width: 14px;
+      text-align: right
+    }
+
+    .dl-c .dc {
+      color: var(--text-3)
+    }
+
+    .dl-c .dw {
+      color: var(--text-1)
+    }
+
+    .dl-c .da {
+      color: var(--accent)
+    }
+
+    /* ── FOOTER ───────────────────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border-2);
+      padding: 36px 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .footer-logo {
+      font-family: 'Oxanium', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: .15em;
+      color: var(--text-1);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .footer-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent-glow);
+    }
+
+    .footer-copy {
+      font-size: 12px;
+      color: var(--text-3);
+      margin-top: 5px
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 24px
+    }
+
+    .footer-links a {
+      font-size: 13px;
+      color: var(--text-3);
+      transition: color .15s
+    }
+
+    .footer-links a:hover {
+      color: var(--text-2)
+    }
+
+    /* ── ANIMATIONS ───────────────────────────────────────────── */
+    @keyframes fadeup {
+      from {
+        opacity: 0;
+        transform: translateY(20px)
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0)
+      }
+    }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity .7s ease, transform .7s ease;
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: none
+    }
+
+    /* ── RESPONSIVE ───────────────────────────────────────────── */
+    @media(max-width:900px) {
+      nav {
+        padding: 0 20px
+      }
+
+      .nav-links li:not(:last-child) {
+        display: none
+      }
+
+      .steps {
+        grid-template-columns: 1fr
+      }
+
+      .feat-grid {
+        grid-template-columns: 1fr 1fr
+      }
+
+      .api-grid {
+        grid-template-columns: 1fr
+      }
+
+      .api-code {
+        position: static
+      }
+
+      .stats-bar {
+        grid-template-columns: 1fr 1fr
+      }
+
+      footer {
+        padding: 28px 20px;
+        flex-direction: column
+      }
+    }
+
+    @media(max-width:520px) {
+      .feat-grid {
+        grid-template-columns: 1fr
+      }
+
+      .flow-connector {
+        flex: 0 0 24px
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Grain noise -->
+  <svg id="grain" xmlns="http://www.w3.org/2000/svg">
+    <filter id="fn">
+      <feTurbulence type="fractalNoise" baseFrequency=".72" numOctaves="4" stitchTiles="stitch" />
+      <feColorMatrix type="saturate" values="0" />
+    </filter>
+    <rect width="100%" height="100%" filter="url(#fn)" opacity=".5" />
+  </svg>
+
+  <!-- NAV -->
+  <nav id="nav">
+    <a href="#" class="logo">
+      <div class="logo-signal">
+        <div class="logo-core"></div>
+        <div class="logo-ring"></div>
+      </div>
+      SMSFLARE
+    </a>
+    <ul class="nav-links">
+      <li><a href="#how">How it works</a></li>
+      <li><a href="#features">Features</a></li>
+      <li><a href="#api">API</a></li>
+      <li><a href="/public-docs">Docs</a></li>
+      <li><a href="/" class="nav-cta">OPEN DASHBOARD →</a></li>
+    </ul>
+  </nav>
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-glow"></div>
+
+    <h1 class="hero-title">
+      Turn any Android<br>into an <span class="hl">SMS gateway</span>
+    </h1>
+
+    <p class="hero-sub">
+      Route messages through phones you already own.
+      No carrier fees, no third-party APIs, dead-simple REST API.
+    </p>
+
+    <div class="hero-actions">
+      <a href="#deploy" class="btn-primary">
+        GET STARTED
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M5 12h14M12 5l7 7-7 7" />
+        </svg>
+      </a>
+      <a href="smsflare.apk" download class="btn-ghost">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          <polyline points="7 10 12 15 17 10" />
+          <line x1="12" x2="12" y1="3" y2="15" />
+        </svg>
+        DOWNLOAD APK
+      </a>
+      <a href="/public-docs" class="btn-ghost">
+        READ THE DOCS
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+          <polyline points="15 3 21 3 21 9" />
+          <line x1="10" x2="21" y1="14" y2="3" />
+        </svg>
+      </a>
+    </div>
+
+    <div class="hero-terminal">
+      <div class="term-hdr">
+        <div class="term-dot" style="background:var(--red)"></div>
+        <div class="term-dot" style="background:var(--yellow)"></div>
+        <div class="term-dot" style="background:var(--accent)"></div>
+        <span class="term-label">SEND AN SMS — 3 LINES</span>
+      </div>
+      <div class="term-body" id="term">
+        <div><span class="tc"># Authenticate with an API key</span></div>
+        <div><span class="tpr">$ </span><span class="tk">export</span> <span class="tw">API_KEY</span>=<span
+            class="ts">"your_key_here"</span></div>
+        <br>
+        <div><span class="tc"># Send a message</span></div>
+        <div><span class="tpr">$ </span><span class="tw">curl</span> <span class="tk">-X POST</span>
+          your-worker.workers.dev/api/sms/send \</div>
+        <div>&nbsp;&nbsp;<span class="tk">-H</span> <span class="ts">"Authorization: Bearer $API_KEY"</span> \</div>
+        <div>&nbsp;&nbsp;<span class="tk">-d</span> <span class="ts">'{"to":"+14155552671","message":"Hello from SMS
+            Flare!"}'</span></div>
+        <br>
+        <div><span class="tc"># Response</span></div>
+        <div>{</div>
+        <div>&nbsp;&nbsp;<span class="tg">"job_id"</span>: <span class="tp">"a1b2c3d4e5f6a7b8"</span>,</div>
+        <div>&nbsp;&nbsp;<span class="tg">"status"</span>: <span class="ts">"assigned"</span>,</div>
+        <div>&nbsp;&nbsp;<span class="tg">"assigned_device"</span>: <span class="tp">"b2c3d4..."</span></div>
+        <div>}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STATS BAR -->
+  <div class="stats-bar">
+    <div class="stat reveal">
+      <div class="stat-n">$0</div>
+      <div class="stat-l">Per-message cost</div>
+    </div>
+    <div class="stat reveal">
+      <div class="stat-n">&lt;30s</div>
+      <div class="stat-l">Max delivery latency</div>
+    </div>
+    <div class="stat reveal">
+      <div class="stat-n">100+</div>
+      <div class="stat-l">Concurrent devices</div>
+    </div>
+    <div class="stat reveal">
+      <div class="stat-n">CF</div>
+      <div class="stat-l">Workers free tier</div>
+    </div>
+  </div>
+
+  <!-- HOW IT WORKS -->
+  <section id="how">
+    <div class="wrap sect">
+      <div class="section-label">How it works</div>
+      <h2 class="h2">Three steps to your<br>own SMS infrastructure</h2>
+      <p class="sub">No carrier contracts. No SLA negotiations. Deploy in minutes and start sending.</p>
+
+      <div class="steps reveal">
+        <div class="step">
+          <div class="step-n">01</div>
+          <div class="step-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <polyline points="16 18 22 12 16 6" />
+              <polyline points="8 6 2 12 8 18" />
+            </svg>
+          </div>
+          <div class="step-title">Deploy the backend</div>
+          <div class="step-desc">Run the setup script. It creates your Cloudflare D1 database, applies all migrations,
+            generates a random JWT secret, and deploys the Worker — completely automated.</div>
+          <div class="step-tag">bash setup.sh</div>
+        </div>
+        <div class="step">
+          <div class="step-n">02</div>
+          <div class="step-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <rect width="14" height="20" x="5" y="2" rx="2" />
+              <path d="M12 18h.01" />
+            </svg>
+          </div>
+          <div class="step-title">Pair Android devices</div>
+          <div class="step-desc">Install the SMS Flare app on any Android phone. Scan the QR code from your dashboard —
+            it encodes both the pairing token and API URL so you don't type a thing.</div>
+          <a href="smsflare.apk" download class="step-tag"
+            style="display:inline-flex;align-items:center;gap:6px;text-decoration:none">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" x2="12" y1="3" y2="15" />
+            </svg>
+            Download APK
+          </a>
+        </div>
+        <div class="step">
+          <div class="step-n">03</div>
+          <div class="step-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="m22 2-7 20-4-9-9-4Z" />
+              <path d="M22 2 11 13" />
+            </svg>
+          </div>
+          <div class="step-title">Send via API or dashboard</div>
+          <div class="step-desc">POST to the REST API using an API key or your session JWT. Jobs are assigned to
+            available devices within seconds and dispatched over the device's SIM card.</div>
+          <div class="step-tag">POST /api/sms/send</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SIGNAL FLOW -->
+  <div class="flow-section">
+    <div class="wrap">
+      <div class="flow-hdr">
+        <div class="section-label" style="justify-content:center;margin-bottom:10px">
+          Architecture
+          <span style="width:40px;height:1px;background:rgba(0,255,127,.3);display:inline-block;flex:none"></span>
+        </div>
+        <div class="flow-title-sm">Message delivery pipeline</div>
+      </div>
+      <div class="flow reveal">
+        <div class="flow-node">
+          <div class="flow-em"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+              <rect x="2" y="3" width="20" height="14" rx="2" />
+              <path d="M8 21h8M12 17v4" />
+            </svg></div>
+          <div class="flow-node-title">Your App</div>
+          <div class="flow-node-sub">REST API call</div>
+        </div>
+        <div class="flow-connector">
+          <div class="flow-line">
+            <div class="flow-pulse"></div>
+          </div>
+          <div class="flow-arrow"></div>
+        </div>
+        <div class="flow-node active">
+          <div class="flow-em"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+            </svg></div>
+          <div class="flow-node-title">CF Worker</div>
+          <div class="flow-node-sub">Job queue · D1</div>
+        </div>
+        <div class="flow-connector">
+          <div class="flow-line">
+            <div class="flow-pulse" style="animation-delay:.5s"></div>
+          </div>
+          <div class="flow-arrow"></div>
+        </div>
+        <div class="flow-node">
+          <div class="flow-em"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+              <rect x="5" y="2" width="14" height="20" rx="2" />
+              <path d="M12 18h.01" />
+            </svg></div>
+          <div class="flow-node-title">Android App</div>
+          <div class="flow-node-sub">30s poll cycle</div>
+        </div>
+        <div class="flow-connector">
+          <div class="flow-line">
+            <div class="flow-pulse" style="animation-delay:1s"></div>
+          </div>
+          <div class="flow-arrow"></div>
+        </div>
+        <div class="flow-node">
+          <div class="flow-em"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+              <path d="M5 12.55a11 11 0 0 1 14.08 0" />
+              <path d="M1.42 9a16 16 0 0 1 21.16 0" />
+              <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
+              <circle cx="12" cy="20" r="1" fill="currentColor" />
+            </svg></div>
+          <div class="flow-node-title">SIM Card</div>
+          <div class="flow-node-sub">SMS dispatched</div>
+        </div>
+        <div class="flow-connector">
+          <div class="flow-line">
+            <div class="flow-pulse" style="animation-delay:1.5s"></div>
+          </div>
+          <div class="flow-arrow"></div>
+        </div>
+        <div class="flow-node">
+          <div class="flow-em"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+              <polyline points="22,6 12,13 2,6" />
+            </svg></div>
+          <div class="flow-node-title">Recipient</div>
+          <div class="flow-node-sub">Delivered</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FEATURES -->
+  <section id="features">
+    <div class="wrap sect">
+      <div class="section-label">Features</div>
+      <h2 class="h2">Everything you need,<br>nothing you don't</h2>
+      <p class="sub">Built for developers who want control without the overhead of a managed SMS provider.</p>
+
+      <div class="feat-grid">
+        <div class="feat reveal">
+          <div class="feat-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <rect x="3" y="11" width="18" height="11" rx="2" />
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            </svg>
+          </div>
+          <div class="feat-title">Zero carrier fees</div>
+          <div class="feat-desc">Use your existing SIM plan. The only cost is the phone and its data plan — no
+            per-message markup, no monthly minimums, no surprise bills.</div>
+        </div>
+        <div class="feat reveal">
+          <div class="feat-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path
+                d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+            </svg>
+          </div>
+          <div class="feat-title">Full infrastructure ownership</div>
+          <div class="feat-desc">Cloudflare Workers + D1 SQLite. Your data never touches a third-party SMS provider's
+            servers. GDPR-compliant by architecture.</div>
+        </div>
+        <div class="feat reveal">
+          <div class="feat-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <polyline points="16 18 22 12 16 6" />
+              <polyline points="8 6 2 12 8 18" />
+            </svg>
+          </div>
+          <div class="feat-title">Clean REST API</div>
+          <div class="feat-desc">Authenticate with a user JWT or a long-lived API key. Works with any language or HTTP
+            client. Full response schemas documented.</div>
+        </div>
+        <div class="feat reveal">
+          <div class="feat-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+            </svg>
+          </div>
+          <div class="feat-title">Real-time delivery tracking</div>
+          <div class="feat-desc">Every job has a full status timeline: pending → assigned → sent → delivered. Check the
+            dashboard or poll the API for live updates.</div>
+        </div>
+        <div class="feat reveal">
+          <div class="feat-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <rect width="14" height="20" x="5" y="2" rx="2" />
+              <path d="M12 18h.01" />
+              <rect width="6" height="4" x="9" y="6" rx="1" />
+            </svg>
+          </div>
+          <div class="feat-title">Multi-device pool</div>
+          <div class="feat-desc">Register 100+ Android devices. Jobs are assigned to whichever device sent the most
+            recent heartbeat. Add more devices at any time without downtime.</div>
+        </div>
+        <div class="feat reveal">
+          <div class="feat-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M12 2L2 7l10 5 10-5-10-5z" />
+              <path d="M2 17l10 5 10-5" />
+              <path d="M2 12l10 5 10-5" />
+            </svg>
+          </div>
+          <div class="feat-title">Batch sending</div>
+          <div class="feat-desc">POST up to 50 messages in one request. All validated before any job is created — a
+            single invalid number rejects the whole batch cleanly.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- API -->
+  <section id="api" style="padding-top:0">
+    <div class="wrap sect" style="padding-top:0">
+      <div class="api-grid reveal">
+        <div>
+          <div class="section-label">REST API</div>
+          <h2 class="h2">One endpoint<br>to send anything</h2>
+          <p style="font-size:15px;color:var(--text-2);line-height:1.75;margin-bottom:4px">
+            Three auth modes — user JWT, long-lived API key, or device token for Android. One consistent response shape.
+            No SDK required.
+          </p>
+
+          <ul class="ep-list">
+            <li>
+              <span class="ep-check">✓</span>
+              <div><span class="ep-name">POST /api/sms/send</span><span
+                  style="color:var(--text-3);font-size:12.5px">single message</span></div>
+            </li>
+            <li>
+              <span class="ep-check">✓</span>
+              <div><span class="ep-name">POST /api/sms/send/batch</span><span
+                  style="color:var(--text-3);font-size:12.5px">up to 50 at once</span></div>
+            </li>
+            <li>
+              <span class="ep-check">✓</span>
+              <div><span class="ep-name">GET /api/jobs</span><span
+                  style="color:var(--text-3);font-size:12.5px">paginated history with status filter</span></div>
+            </li>
+            <li>
+              <span class="ep-check">✓</span>
+              <div><span class="ep-name">GET /api/stats</span><span
+                  style="color:var(--text-3);font-size:12.5px">delivery rate, device counts</span></div>
+            </li>
+            <li>
+              <span class="ep-check">✓</span>
+              <div><span class="ep-name">DELETE /api/jobs/:id</span><span
+                  style="color:var(--text-3);font-size:12.5px">cancel queued jobs</span></div>
+            </li>
+            <li>
+              <span class="ep-check">✓</span>
+              <div><span class="ep-name">GET /api/devices/:id</span><span
+                  style="color:var(--text-3);font-size:12.5px">device detail + heartbeat history</span></div>
+            </li>
+          </ul>
+        </div>
+
+        <div class="api-code">
+          <div class="api-code-hdr">
+            <div class="code-dots">
+              <div class="code-dot" style="background:var(--red)"></div>
+              <div class="code-dot" style="background:var(--yellow)"></div>
+              <div class="code-dot" style="background:var(--accent)"></div>
+            </div>
+            <span
+              style="font-family:'Share Tech Mono',monospace;font-size:10.5px;color:var(--text-3);letter-spacing:.06em">batch-send.js</span>
+          </div>
+          <div class="api-code-body">
+            <span style="color:var(--text-3)">// Send to multiple recipients in one call</span>
+            <span style="color:var(--blue)">const</span> <span style="color:var(--text-1)">res</span> <span
+              style="color:var(--text-3)">=</span> <span style="color:var(--blue)">await</span> <span
+              style="color:var(--text-2)">fetch</span>(<span
+              style="color:var(--accent-2)">`${BASE}/api/sms/send/batch`</span>, {
+            <span style="color:var(--accent)">method</span>: <span style="color:var(--accent-2)">'POST'</span>,
+            <span style="color:var(--accent)">headers</span>: {
+            <span style="color:var(--accent-2)">'Authorization'</span>: <span style="color:var(--accent-2)">`Bearer
+              ${API_KEY}`</span>,
+            <span style="color:var(--accent-2)">'Content-Type'</span>: <span
+              style="color:var(--accent-2)">'application/json'</span>,
+            },
+            <span style="color:var(--accent)">body</span>: <span style="color:var(--text-2)">JSON</span>.<span
+              style="color:var(--blue)">stringify</span>({
+            <span style="color:var(--accent)">messages</span>: [
+            { <span style="color:var(--accent)">to</span>: <span style="color:var(--accent-2)">'+14155550001'</span>,
+            <span style="color:var(--accent)">message</span>: <span style="color:var(--accent-2)">'Hi Alice'</span> },
+            { <span style="color:var(--accent)">to</span>: <span style="color:var(--accent-2)">'+14155550002'</span>,
+            <span style="color:var(--accent)">message</span>: <span style="color:var(--accent-2)">'Hi Bob'</span> },
+            ],
+            }),
+            });
+
+            <span style="color:var(--blue)">const</span> <span style="color:var(--text-1)">data</span> <span
+              style="color:var(--text-3)">=</span> <span style="color:var(--blue)">await</span> <span
+              style="color:var(--text-1)">res</span>.<span style="color:var(--blue)">json</span>();
+            <span style="color:var(--text-3)">// {</span>
+            <span style="color:var(--text-3)">// results: [{ job_id, status, assigned_device }, ...],</span>
+            <span style="color:var(--text-3)">// count: 2</span>
+            <span style="color:var(--text-3)">// }</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DEPLOY -->
+  <div id="deploy" class="deploy-wrap">
+    <div class="wrap">
+      <div class="section-label" style="justify-content:center">Deploy</div>
+      <h2 class="h2" style="text-align:center;margin-bottom:14px">One script.<br>Everything configured.</h2>
+      <p style="font-size:15.5px;color:var(--text-2);max-width:480px;margin:0 auto;line-height:1.75;text-align:center">
+        Clone the repo and run <code
+          style="font-family:'Share Tech Mono',monospace;color:var(--accent);font-size:13px">setup.sh</code>. It handles
+        Cloudflare auth, database creation, migrations, JWT secrets, and dashboard deployment — fully interactive, one
+        pass.
+      </p>
+
+      <div class="deploy-box reveal">
+        <div class="deploy-hdr">
+          <div class="code-dots">
+            <div class="code-dot" style="background:var(--red)"></div>
+            <div class="code-dot" style="background:var(--yellow)"></div>
+            <div class="code-dot" style="background:var(--accent)"></div>
+          </div>
+          <span class="deploy-mono">SETUP.SH</span>
+        </div>
+        <div class="deploy-body">
+          <div class="dl"><span class="dl-n">1</span><span class="dl-c"><span class="dc"># Clone the
+                repository</span></span></div>
+          <div class="dl"><span class="dl-n">2</span><span class="dl-c"><span class="dw">git clone</span> <span
+                class="da">github.com/your-org/smsflare</span></span></div>
+          <div class="dl"><span class="dl-n">3</span><span class="dl-c"><span class="dw">cd</span> smsflare</span></div>
+          <div class="dl"><span class="dl-n">4</span><span class="dl-c">&nbsp;</span></div>
+          <div class="dl"><span class="dl-n">5</span><span class="dl-c"><span class="dc"># Run the interactive setup
+                (local or Cloudflare deploy)</span></span></div>
+          <div class="dl"><span class="dl-n">6</span><span class="dl-c"><span class="dw">bash</span> <span
+                class="da">setup.sh</span></span></div>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:center;gap:14px;margin-top:36px;flex-wrap:wrap">
+        <a href="/auth/setup/" class="btn-primary">
+          OPEN DASHBOARD
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M5 12h14M12 5l7 7-7 7" />
+          </svg>
+        </a>
+        <a href="smsflare.apk" download class="btn-ghost">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" x2="12" y1="3" y2="15" />
+          </svg>
+          DOWNLOAD APK
+        </a>
+        <a href="/public-docs" class="btn-ghost">READ THE DOCS</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer>
+    <div>
+      <div class="footer-logo">
+        <div class="footer-dot"></div>
+        SMSFLARE
+      </div>
+      <div class="footer-copy">Self-hosted SMS gateway · Cloudflare Workers + Android</div>
+    </div>
+    <div class="footer-links">
+      <a href="/public-docs">Docs</a>
+      <a href="/">Dashboard</a>
+      <a href="https://github.com">GitHub</a>
+    </div>
+  </footer>
+
+  <script>
+    // Nav glass effect on scroll
+    const nav = document.getElementById('nav');
+    window.addEventListener('scroll', () => {
+      nav.classList.toggle('scrolled', window.scrollY > 44);
+    }, { passive: true });
+
+    // Scroll-reveal
+    const reveals = document.querySelectorAll('.reveal');
+    const ro = new IntersectionObserver(entries => {
+      entries.forEach(e => {
+        if (!e.isIntersecting) return;
+        const siblings = [...e.target.parentElement.querySelectorAll('.reveal:not(.visible)')];
+        const idx = siblings.indexOf(e.target);
+        e.target.style.transitionDelay = `${Math.max(0, idx) * 0.07}s`;
+        e.target.classList.add('visible');
+        ro.unobserve(e.target);
+      });
+    }, { threshold: 0.08 });
+    reveals.forEach(el => ro.observe(el));
+
+    // Hero terminal staggered line reveal
+    (function () {
+      const lines = document.querySelectorAll('#term > *');
+      lines.forEach((line, i) => {
+        line.style.opacity = '0';
+        line.style.transform = 'translateX(-6px)';
+        line.style.transition = `opacity .2s ease ${.88 + i * .06}s, transform .2s ease ${.88 + i * .06}s`;
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          line.style.opacity = '1';
+          line.style.transform = 'none';
+        }));
+      });
+    })();
+  </script>
+</body>
+
+</html>

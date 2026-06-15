@@ -256,6 +256,11 @@ fi
 # ── Dashboard setup ───────────────────────────────────────────────────────────
 section "Dashboard"
 
+# Ensure public assets are in place
+mkdir -p dashboard/public
+cp smsflare.apk dashboard/public/smsflare.apk
+ok "APK copied to dashboard/public"
+
 cd dashboard
 
 run "Installing dashboard dependencies" npm install --silent --progress=false

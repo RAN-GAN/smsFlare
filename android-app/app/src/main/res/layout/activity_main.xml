@@ -224,7 +224,17 @@
                         android:text="This app runs silently in the background.\nYou can close this screen."
                         android:textSize="13sp"
                         android:textColor="#9E9E9E"
-                        android:gravity="center" />
+                        android:gravity="center"
+                        android:layout_marginBottom="24dp" />
+
+                    <Button
+                        android:id="@+id/btnUnpair"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:text="Unpair Device"
+                        android:textSize="14sp"
+                        android:textColor="@color/error"
+                        style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
 
                 </LinearLayout>
 

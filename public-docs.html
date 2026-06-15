@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SMS Flare — Public Documentation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #07090F;
+      --surface: #0E111A;
+      --surface-2: #161A26;
+      --accent: #00FF7F;
+      --accent-subtle: rgba(0, 255, 127, 0.08);
+      --border: #1E2433;
+      --border-2: #2A3142;
+      --text-1: #FFFFFF;
+      --text-2: #A1AABF;
+      --text-3: #6B768C;
+      --status-pending: #F59E0B;
+      --status-assigned: #38BDF8;
+      --status-sent: #34D399;
+      --status-delivered: #10B981;
+      --status-failed: #F87171;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text-1);
+      font-family: 'DM Sans', sans-serif;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: var(--accent); text-decoration: none; transition: color 0.12s; }
+    a:hover { color: #00CC66; }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: rgba(7, 9, 15, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 32px;
+      height: 52px;
+      display: flex;
+      alignItems: center;
+      justifyContent: space-between;
+    }
+
+    .container {
+      display: flex;
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    aside {
+      width: 210px;
+      flex-shrink: 0;
+      position: sticky;
+      top: 52px;
+      height: calc(100vh - 52px);
+      overflow-y: auto;
+      padding: 32px 0;
+      padding-right: 16px;
+      border-right: 1px solid var(--border);
+    }
+
+    main {
+      flex: 1;
+      min-width: 0;
+      padding: 40px 0 80px 48px;
+      max-width: 780px;
+    }
+
+    .toc-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-3);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    .toc-link {
+      display: block;
+      padding: 5px 8px;
+      border-radius: 5px;
+      font-size: 13px;
+      color: var(--text-2);
+      margin-bottom: 1px;
+    }
+    .toc-link.active {
+      font-weight: 500;
+      color: var(--accent);
+      background: var(--accent-subtle);
+    }
+    .toc-child {
+      margin-left: 12px;
+      border-left: 1px solid var(--border);
+      padding-left: 8px;
+    }
+
+    section { margin-bottom: 48px; }
+
+    h2 {
+      font-size: 19px;
+      font-weight: 600;
+      color: var(--text-1);
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+      scroll-margin-top: 72px;
+    }
+
+    h3 {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-1);
+      margin-bottom: 14px;
+      margin-top: 32px;
+      scroll-margin-top: 72px;
+    }
+
+    p { font-size: 14px; color: var(--text-2); margin-bottom: 16px; }
+
+    .note {
+      background: rgba(253, 186, 116, 0.07);
+      border: 1px solid rgba(253, 186, 116, 0.2);
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-bottom: 20px;
+      font-size: 13.5px;
+      color: var(--text-2);
+    }
+    .note span { color: var(--accent); font-weight: 600; }
+
+    .code-block {
+      background: var(--surface);
+      border: 1px solid var(--border-2);
+      border-radius: 8px;
+      overflow: hidden;
+      margin-top: 10px;
+      margin-bottom: 16px;
+    }
+    .code-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 7px 14px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface-2);
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--text-3);
+    }
+    pre {
+      margin: 0;
+      padding: 16px;
+      font-family: 'DM Mono', monospace;
+      font-size: 12.5px;
+      color: var(--text-2);
+      line-height: 1.7;
+      overflow-x: auto;
+      white-space: pre;
+    }
+
+    .badge {
+      font-family: 'DM Mono', monospace;
+      font-size: 10.5px;
+      font-weight: 500;
+      border-radius: 4px;
+      padding: 2px 7px;
+      border: 1px solid transparent;
+    }
+
+    .endpoint-card {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 24px;
+      background: var(--surface);
+    }
+    .endpoint-header {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface-2);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .endpoint-body { padding: 16px 18px; }
+
+    .param-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+      margin-top: 10px;
+    }
+    .param-table th {
+      padding: 8px 12px;
+      text-align: left;
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--text-3);
+      background: var(--surface-2);
+      border-bottom: 1px solid var(--border);
+    }
+    .param-table td {
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      font-size: 13px;
+    }
+    .param-table tr:last-child td { border-bottom: none; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div style="display: flex; align-items: center; gap: 10px;">
+    <div style="width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent-glow);"></div>
+    <span style="font-family: 'DM Mono', monospace; font-size: 12.5px; font-weight: 500; letter-spacing: 0.1em;">SMSFLARE</span>
+    <span style="color: var(--border-2); margin: 0 4px;">/</span>
+    <span style="font-size: 13px; color: var(--text-3);">Public Docs</span>
+  </div>
+  <a href="index.html" style="font-size: 13px; color: var(--text-3);">← Back to home</a>
+</header>
+
+<div class="container">
+  <aside>
+    <div class="toc-title">On this page</div>
+    <nav>
+      <a href="#getting-started" class="toc-link">Getting Started</a>
+      <a href="#device-pairing" class="toc-link">Device Pairing</a>
+      <a href="#sending-sms" class="toc-link">Sending SMS</a>
+      <a href="#api-reference" class="toc-link">API Reference</a>
+      <div class="toc-child">
+        <a href="#api-sms" class="toc-link" style="font-size: 12.5px; color: var(--text-3);">SMS Endpoints</a>
+      </div>
+    </nav>
+  </aside>
+
+  <main>
+    <div class="note" style="margin-bottom: 36px; background: var(--surface); border-color: var(--border-2);">
+      <strong>Public Documentation: </strong>
+      These examples use template URLs. Once you deploy your own instance, you can find your real Worker URL pre-filled in your private dashboard docs.
+    </div>
+
+    <section id="getting-started">
+      <h2>Getting Started</h2>
+      <p>SMS Flare turns any Android phone into an SMS gateway. Your dashboard sends jobs to a paired device, which sends the actual SMS messages via the phone's SIM card. No carrier API required.</p>
+      
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 28px;">
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px;">
+          <div style="font-family: 'DM Mono', monospace; font-size: 11px; color: var(--accent); margin-bottom: 6px;">Step 1</div>
+          <div style="font-weight: 600; font-size: 14px; margin-bottom: 6px;">Deploy</div>
+          <div style="font-size: 13px; color: var(--text-2); line-height: 1.5;">Deploy the backend Worker and dashboard.</div>
+        </div>
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px;">
+          <div style="font-family: 'DM Mono', monospace; font-size: 11px; color: var(--accent); margin-bottom: 6px;">Step 2</div>
+          <div style="font-weight: 600; font-size: 14px; margin-bottom: 6px;">Pair device</div>
+          <div style="font-size: 13px; color: var(--text-2); line-height: 1.5;">Install the Android app and scan the QR code.</div>
+        </div>
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px;">
+          <div style="font-family: 'DM Mono', monospace; font-size: 11px; color: var(--accent); margin-bottom: 6px;">Step 3</div>
+          <div style="font-weight: 600; font-size: 14px; margin-bottom: 6px;">Send SMS</div>
+          <div style="font-size: 13px; color: var(--text-2); line-height: 1.5;">Start sending via API or dashboard.</div>
+        </div>
+      </div>
+      <div class="note">All API requests should be sent to your Worker URL. These examples use <code>https://your-worker.workers.dev</code> as a placeholder.</div>
+    </section>
+
+    <section id="device-pairing">
+      <h2>Device Pairing</h2>
+      <p>Each Android device must be paired before it can send SMS. Pairing creates a permanent device token the app uses to poll for jobs.</p>
+      <ol style="padding-left: 20px; color: var(--text-2); font-size: 14px; line-height: 2; margin-bottom: 20px;">
+        <li>Install the <strong>SMS Flare</strong> Android app on the phone.</li>
+        <li>In your dashboard, go to <strong>Settings → API Keys</strong> and generate a pairing token.</li>
+        <li>Scan the QR code with the Android app.</li>
+        <li>The device will appear as online in the dashboard within 30 seconds.</li>
+      </ol>
+    </section>
+
+    <section id="sending-sms">
+      <h2>Sending SMS</h2>
+      <p>Dispatch messages programmatically via the REST API using your API key.</p>
+      <div class="code-block">
+        <div class="code-header">bash</div>
+        <pre>curl -X POST https://your-worker.workers.dev/api/sms/send \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"to": "+14155552671", "message": "Hello from SMS Flare!"}'</pre>
+      </div>
+    </section>
+
+    <section id="api-reference">
+      <h2>API Reference</h2>
+      <p>All endpoints accept and return JSON. The base URL is your Worker's deployment URL.</p>
+
+      <h3 id="api-sms">SMS Endpoints</h3>
+      
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="badge" style="color: #34D399; background: rgba(52, 211, 153, 0.08); border-color: rgba(52, 211, 153, 0.2);">POST</span>
+          <code style="font-family: 'DM Mono', monospace; font-size: 13px; flex: 1;">/api/sms/send</code>
+          <span class="badge" style="color: #C084FC; background: rgba(192, 132, 252, 0.08); border-color: rgba(192, 132, 252, 0.2);">API Key</span>
+        </div>
+        <div class="endpoint-body">
+          <p>Send a single SMS message. The job is immediately assigned to an active device.</p>
+          <div style="font-size: 12px; font-weight: 600; color: var(--text-3); text-transform: uppercase; margin-bottom: 6px;">Request body</div>
+          <table class="param-table">
+            <thead>
+              <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>to</code></td><td>string</td><td>Recipient phone number (E.164).</td></tr>
+              <tr><td><code>message</code></td><td>string</td><td>Message body (max 160 chars).</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <p style="margin-top: 32px; font-size: 14px; color: var(--text-3);">Full API documentation for all endpoints (Jobs, Devices, Auth) is available in your instance's internal dashboard docs.</p>
+    </section>
+  </main>
+</div>
+
+</body>
+</html>

@@ -33,6 +33,7 @@ import com.smsflare.data.local.LogEntry
 import com.smsflare.polling.DeviceRepository
 import com.smsflare.polling.JobPoller
 import com.smsflare.reporting.HeartbeatSender
+import androidx.work.WorkManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -289,6 +290,39 @@ class MainActivity : AppCompatActivity() {
             findViewById<Button>(R.id.btnChangeSim).setOnClickListener {
                 pickSimCard(afterPairing = false)
             }
+
+            findViewById<Button>(R.id.btnUnpair).setOnClickListener {
+                confirmUnpair()
+            }
+        }
+    }
+
+    private fun confirmUnpair() {
+        AlertDialog.Builder(this)
+            .setTitle("Unpair Device")
+            .setMessage("This will remove the device from your SMS Flare account and stop all SMS forwarding. Continue?")
+            .setPositiveButton("Unpair") { _, _ -> unpairDevice() }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun unpairDevice() {
+        lifecycleScope.launch {
+            val baseUrl = DevicePrefs.getBaseUrl(this@MainActivity)
+            val token = DevicePrefs.getToken(this@MainActivity)
+            if (baseUrl != null && token != null) {
+                try {
+                    DeviceRepository(this@MainActivity).unpair(baseUrl, token)
+                } catch (e: Exception) {
+                    AppLogger.warn("MainActivity", "Unpair server call failed: ${e.message}")
+                }
+            }
+            JobPoller.cancel(this@MainActivity)
+            HeartbeatSender.cancel(this@MainActivity)
+            WorkManager.getInstance(this@MainActivity).cancelAllWork()
+            DevicePrefs.clear(this@MainActivity)
+            AppLogger.info("MainActivity", "Device unpaired")
+            requestRequiredPermissions()
         }
     }
 

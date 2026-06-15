@@ -328,10 +328,10 @@ export default function SettingsPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
                 <div className="sf-label">Send SMS</div>
-                <pre className="sf-code-block">{`curl -X POST ${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8787'}/api/sms/send \\
-  -H "Authorization: Bearer YOUR_API_KEY" \\
-  -H "Content-Type: application/json" \\
-  -d '{"to": "+1234567890", "message": "Hello from SMS Flare!"}'`}</pre>
+                <pre className="sf-code-block">{`curl -X POST https://your-worker.workers.dev/api/sms/send \\
+          -H "Authorization: Bearer YOUR_API_KEY" \\
+          -H "Content-Type: application/json" \\
+          -d '{"to": "+14155552671", "message": "Hello from SMS Flare!"}'`}</pre>
               </div>
               <div>
                 <div className="sf-label">Response</div>

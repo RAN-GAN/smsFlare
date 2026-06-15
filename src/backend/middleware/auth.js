@@ -1,6 +1,6 @@
 // Authentication middleware
 
-import { verifyJWT, hashPassword } from '../utils/jwt.js';
+import { verifyJWT, hashPassword, hashApiKey } from '../utils/jwt.js';
 
 export async function verifyUserToken(c, next) {
   const authHeader = c.req.header('Authorization');
@@ -56,11 +56,11 @@ export async function verifyApiKey(c, next) {
   }
 
   const apiKey = authHeader.slice(7);
-  const db = c.env.DB;
 
   try {
-    const keyHash = await hashPassword(apiKey);
-    const result = await db
+    const keyHash = await hashApiKey(apiKey);
+
+    const result = await c.env.DB
       .prepare('SELECT id, user_id, expires_at FROM api_keys WHERE key_hash = ?')
       .bind(keyHash)
       .first();
@@ -103,7 +103,7 @@ export async function verifyUserOrApiKey(c, next) {
     }
 
     // Try API key
-    const keyHash = await hashPassword(token);
+    const keyHash = await hashApiKey(token);
     const result = await db
       .prepare('SELECT id, user_id, expires_at FROM api_keys WHERE key_hash = ?')
       .bind(keyHash)

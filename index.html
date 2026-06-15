@@ -14,6 +14,15 @@
   <link
     href="https://fonts.googleapis.com/css2?family=Oxanium:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&family=Share+Tech+Mono&display=swap"
     rel="stylesheet">
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-LZFHZ8DCHP"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
+
+    gtag('config', 'G-LZFHZ8DCHP');
+  </script>
   <style>
     :root {
       --bg: #020604;
@@ -1195,7 +1204,8 @@
         margin-right: auto;
       }
 
-      .btn-primary, .btn-ghost {
+      .btn-primary,
+      .btn-ghost {
         width: 100%;
         justify-content: center;
       }
@@ -1261,7 +1271,8 @@
       <li><a href="/smsFlare/public-docs.html">Docs</a></li>
     </ul>
     <button class="nav-toggle" id="nav-toggle" aria-label="Toggle menu">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
         <line x1="3" y1="12" x2="21" y2="12"></line>
         <line x1="3" y1="6" x2="21" y2="6"></line>
         <line x1="3" y1="18" x2="21" y2="18"></line>
@@ -1642,26 +1653,36 @@
               style="font-family:'Share Tech Mono',monospace;font-size:10.5px;color:var(--text-3);letter-spacing:.06em">batch-send.js</span>
           </div>
           <div class="api-code-body">
-<span style="color:var(--text-3)">// Send to multiple recipients in one call</span>
-<span style="color:var(--blue)">const</span> <span style="color:var(--text-1)">res</span> <span style="color:var(--text-3)">=</span> <span style="color:var(--blue)">await</span> <span style="color:var(--text-2)">fetch</span>(<span style="color:var(--accent-2)">`${BASE}/api/sms/send/batch`</span>, {
-  <span style="color:var(--accent)">method</span>: <span style="color:var(--accent-2)">'POST'</span>,
-  <span style="color:var(--accent)">headers</span>: {
-    <span style="color:var(--accent-2)">'Authorization'</span>: <span style="color:var(--accent-2)">`Bearer ${API_KEY}`</span>,
-    <span style="color:var(--accent-2)">'Content-Type'</span>: <span style="color:var(--accent-2)">'application/json'</span>,
-  },
-  <span style="color:var(--accent)">body</span>: <span style="color:var(--text-2)">JSON</span>.<span style="color:var(--blue)">stringify</span>({
-    <span style="color:var(--accent)">messages</span>: [
-      { <span style="color:var(--accent)">to</span>: <span style="color:var(--accent-2)">'+14155550001'</span>, <span style="color:var(--accent)">message</span>: <span style="color:var(--accent-2)">'Hi Alice'</span> },
-      { <span style="color:var(--accent)">to</span>: <span style="color:var(--accent-2)">'+14155550002'</span>, <span style="color:var(--accent)">message</span>: <span style="color:var(--accent-2)">'Hi Bob'</span> },
-    ],
-  }),
-});
+            <span style="color:var(--text-3)">// Send to multiple recipients in one call</span>
+            <span style="color:var(--blue)">const</span> <span style="color:var(--text-1)">res</span> <span
+              style="color:var(--text-3)">=</span> <span style="color:var(--blue)">await</span> <span
+              style="color:var(--text-2)">fetch</span>(<span
+              style="color:var(--accent-2)">`${BASE}/api/sms/send/batch`</span>, {
+            <span style="color:var(--accent)">method</span>: <span style="color:var(--accent-2)">'POST'</span>,
+            <span style="color:var(--accent)">headers</span>: {
+            <span style="color:var(--accent-2)">'Authorization'</span>: <span style="color:var(--accent-2)">`Bearer
+              ${API_KEY}`</span>,
+            <span style="color:var(--accent-2)">'Content-Type'</span>: <span
+              style="color:var(--accent-2)">'application/json'</span>,
+            },
+            <span style="color:var(--accent)">body</span>: <span style="color:var(--text-2)">JSON</span>.<span
+              style="color:var(--blue)">stringify</span>({
+            <span style="color:var(--accent)">messages</span>: [
+            { <span style="color:var(--accent)">to</span>: <span style="color:var(--accent-2)">'+14155550001'</span>,
+            <span style="color:var(--accent)">message</span>: <span style="color:var(--accent-2)">'Hi Alice'</span> },
+            { <span style="color:var(--accent)">to</span>: <span style="color:var(--accent-2)">'+14155550002'</span>,
+            <span style="color:var(--accent)">message</span>: <span style="color:var(--accent-2)">'Hi Bob'</span> },
+            ],
+            }),
+            });
 
-<span style="color:var(--blue)">const</span> <span style="color:var(--text-1)">data</span> <span style="color:var(--text-3)">=</span> <span style="color:var(--blue)">await</span> <span style="color:var(--text-1)">res</span>.<span style="color:var(--blue)">json</span>();
-<span style="color:var(--text-3)">// {</span>
-<span style="color:var(--text-3)">//   results: [{ job_id, status, assigned_device }, ...],</span>
-<span style="color:var(--text-3)">//   count: 2</span>
-<span style="color:var(--text-3)">// }</span>
+            <span style="color:var(--blue)">const</span> <span style="color:var(--text-1)">data</span> <span
+              style="color:var(--text-3)">=</span> <span style="color:var(--blue)">await</span> <span
+              style="color:var(--text-1)">res</span>.<span style="color:var(--blue)">json</span>();
+            <span style="color:var(--text-3)">// {</span>
+            <span style="color:var(--text-3)">// results: [{ job_id, status, assigned_device }, ...],</span>
+            <span style="color:var(--text-3)">// count: 2</span>
+            <span style="color:var(--text-3)">// }</span>
           </div>
         </div>
       </div>
@@ -1747,7 +1768,7 @@
     navToggle.addEventListener('click', () => {
       mobileNav.classList.toggle('open');
       const isOpen = mobileNav.classList.contains('open');
-      navToggle.innerHTML = isOpen 
+      navToggle.innerHTML = isOpen
         ? '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>'
         : '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>';
       document.body.style.overflow = isOpen ? 'hidden' : '';

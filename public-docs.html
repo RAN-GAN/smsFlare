@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,7 +8,18 @@
   <link rel="icon" href="/smsFlare/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap"
+    rel="stylesheet">
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-LZFHZ8DCHP"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
+
+    gtag('config', 'G-LZFHZ8DCHP');
+  </script>
   <style>
     :root {
       --bg: #07090F;
@@ -27,7 +39,12 @@
       --status-failed: #F87171;
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
     body {
       background: var(--bg);
       color: var(--text-1);
@@ -36,8 +53,15 @@
       -webkit-font-smoothing: antialiased;
     }
 
-    a { color: var(--accent); text-decoration: none; transition: color 0.12s; }
-    a:hover { color: #00CC66; }
+    a {
+      color: var(--accent);
+      text-decoration: none;
+      transition: color 0.12s;
+    }
+
+    a:hover {
+      color: #00CC66;
+    }
 
     header {
       position: sticky;
@@ -89,8 +113,15 @@
     }
 
     @media (max-width: 900px) {
-      header { padding: 0 20px; }
-      .container { flex-direction: column; padding: 0 20px; }
+      header {
+        padding: 0 20px;
+      }
+
+      .container {
+        flex-direction: column;
+        padding: 0 20px;
+      }
+
       aside {
         width: 100%;
         position: fixed;
@@ -105,11 +136,26 @@
         border-right: none;
         display: none;
       }
-      aside.open { display: block; }
-      main { padding: 32px 0 60px 0; }
-      .nav-toggle { display: block; }
-      .getting-started-grid { grid-template-columns: 1fr !important; }
-      .hidden-mobile { display: none !important; }
+
+      aside.open {
+        display: block;
+      }
+
+      main {
+        padding: 32px 0 60px 0;
+      }
+
+      .nav-toggle {
+        display: block;
+      }
+
+      .getting-started-grid {
+        grid-template-columns: 1fr !important;
+      }
+
+      .hidden-mobile {
+        display: none !important;
+      }
     }
 
     .toc-title {
@@ -129,18 +175,22 @@
       color: var(--text-2);
       margin-bottom: 1px;
     }
+
     .toc-link.active {
       font-weight: 500;
       color: var(--accent);
       background: var(--accent-subtle);
     }
+
     .toc-child {
       margin-left: 12px;
       border-left: 1px solid var(--border);
       padding-left: 8px;
     }
 
-    section { margin-bottom: 48px; }
+    section {
+      margin-bottom: 48px;
+    }
 
     h2 {
       font-size: 19px;
@@ -161,7 +211,11 @@
       scroll-margin-top: 72px;
     }
 
-    p { font-size: 14px; color: var(--text-2); margin-bottom: 16px; }
+    p {
+      font-size: 14px;
+      color: var(--text-2);
+      margin-bottom: 16px;
+    }
 
     .note {
       background: rgba(253, 186, 116, 0.07);
@@ -172,7 +226,11 @@
       font-size: 13.5px;
       color: var(--text-2);
     }
-    .note span { color: var(--accent); font-weight: 600; }
+
+    .note span {
+      color: var(--accent);
+      font-weight: 600;
+    }
 
     .code-block {
       background: var(--surface);
@@ -182,6 +240,7 @@
       margin-top: 10px;
       margin-bottom: 16px;
     }
+
     .code-header {
       display: flex;
       justify-content: space-between;
@@ -193,6 +252,7 @@
       font-size: 11px;
       color: var(--text-3);
     }
+
     pre {
       margin: 0;
       padding: 16px;
@@ -220,6 +280,7 @@
       margin-bottom: 24px;
       background: var(--surface);
     }
+
     .endpoint-header {
       padding: 14px 18px;
       border-bottom: 1px solid var(--border);
@@ -229,7 +290,10 @@
       gap: 10px;
       flex-wrap: wrap;
     }
-    .endpoint-body { padding: 16px 18px; }
+
+    .endpoint-body {
+      padding: 16px 18px;
+    }
 
     .param-table {
       width: 100%;
@@ -240,6 +304,7 @@
       overflow: hidden;
       margin-top: 10px;
     }
+
     .param-table th {
       padding: 8px 12px;
       text-align: left;
@@ -249,175 +314,220 @@
       background: var(--surface-2);
       border-bottom: 1px solid var(--border);
     }
+
     .param-table td {
       padding: 8px 12px;
       border-bottom: 1px solid var(--border);
       vertical-align: top;
       font-size: 13px;
     }
-    .param-table tr:last-child td { border-bottom: none; }
+
+    .param-table tr:last-child td {
+      border-bottom: none;
+    }
   </style>
 </head>
+
 <body>
 
-<header>
-  <div style="display: flex; align-items: center; gap: 10px;">
-    <div style="width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent-glow);"></div>
-    <span style="font-family: 'DM Mono', monospace; font-size: 12.5px; font-weight: 500; letter-spacing: 0.1em;">SMSFLARE</span>
-    <span style="color: var(--border-2); margin: 0 4px;">/</span>
-    <span style="font-size: 13px; color: var(--text-3);">Public Docs</span>
-  </div>
-  <div style="display: flex; align-items: center; gap: 16px;">
-    <a href="/smsFlare/index.html" style="font-size: 13px; color: var(--text-3);" class="hidden-mobile">← Back to home</a>
-    <button class="nav-toggle" id="nav-toggle">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
-    </button>
-  </div>
-</header>
-
-<div class="container">
-  <aside>
-    <div class="toc-title">On this page</div>
-    <nav>
-      <a href="#getting-started" class="toc-link">Getting Started</a>
-      <a href="#device-pairing" class="toc-link">Device Pairing</a>
-      <a href="#sending-sms" class="toc-link">Sending SMS</a>
-      <a href="#api-reference" class="toc-link">API Reference</a>
-      <div class="toc-child">
-        <a href="#api-sms" class="toc-link" style="font-size: 12.5px; color: var(--text-3);">SMS Endpoints</a>
+  <header>
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <div
+        style="width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent-glow);">
       </div>
-    </nav>
-  </aside>
-
-  <main>
-    <div class="note" style="margin-bottom: 36px; background: var(--surface); border-color: var(--border-2);">
-      <strong>Public Documentation: </strong>
-      These examples use template URLs. Once you deploy your own instance, you can find your real Worker URL pre-filled in your private dashboard docs.
+      <span
+        style="font-family: 'DM Mono', monospace; font-size: 12.5px; font-weight: 500; letter-spacing: 0.1em;">SMSFLARE</span>
+      <span style="color: var(--border-2); margin: 0 4px;">/</span>
+      <span style="font-size: 13px; color: var(--text-3);">Public Docs</span>
     </div>
+    <div style="display: flex; align-items: center; gap: 16px;">
+      <a href="/smsFlare/index.html" style="font-size: 13px; color: var(--text-3);" class="hidden-mobile">← Back to
+        home</a>
+      <button class="nav-toggle" id="nav-toggle">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+  </header>
 
-    <section id="getting-started">
-      <h2>Getting Started</h2>
-      <p>SMS Flare turns any Android phone into an SMS gateway. Your dashboard sends jobs to a paired device, which sends the actual SMS messages via the phone's SIM card. No carrier API required.</p>
-      
-      <div class="getting-started-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 28px;">
-        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px;">
-          <div style="font-family: 'DM Mono', monospace; font-size: 11px; color: var(--accent); margin-bottom: 6px;">Step 1</div>
-          <div style="font-weight: 600; font-size: 14px; margin-bottom: 6px;">Deploy</div>
-          <div style="font-size: 13px; color: var(--text-2); line-height: 1.5;">Deploy the backend Worker and dashboard.</div>
+  <div class="container">
+    <aside>
+      <div class="toc-title">On this page</div>
+      <nav>
+        <a href="#getting-started" class="toc-link">Getting Started</a>
+        <a href="#device-pairing" class="toc-link">Device Pairing</a>
+        <a href="#sending-sms" class="toc-link">Sending SMS</a>
+        <a href="#api-reference" class="toc-link">API Reference</a>
+        <div class="toc-child">
+          <a href="#api-sms" class="toc-link" style="font-size: 12.5px; color: var(--text-3);">SMS Endpoints</a>
         </div>
-        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px;">
-          <div style="font-family: 'DM Mono', monospace; font-size: 11px; color: var(--accent); margin-bottom: 6px;">Step 2</div>
-          <div style="font-weight: 600; font-size: 14px; margin-bottom: 6px;">Pair device</div>
-          <div style="font-size: 13px; color: var(--text-2); line-height: 1.5;">Install the Android app and scan the QR code.</div>
-        </div>
-        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px;">
-          <div style="font-family: 'DM Mono', monospace; font-size: 11px; color: var(--accent); margin-bottom: 6px;">Step 3</div>
-          <div style="font-weight: 600; font-size: 14px; margin-bottom: 6px;">Send SMS</div>
-          <div style="font-size: 13px; color: var(--text-2); line-height: 1.5;">Start sending via API or dashboard.</div>
-        </div>
+      </nav>
+    </aside>
+
+    <main>
+      <div class="note" style="margin-bottom: 36px; background: var(--surface); border-color: var(--border-2);">
+        <strong>Public Documentation: </strong>
+        These examples use template URLs. Once you deploy your own instance, you can find your real Worker URL
+        pre-filled in your private dashboard docs.
       </div>
-      <div class="note">All API requests should be sent to your Worker URL. These examples use <code>https://your-worker.workers.dev</code> as a placeholder.</div>
-    </section>
 
-    <section id="device-pairing">
-      <h2>Device Pairing</h2>
-      <p>Each Android device must be paired before it can send SMS. Pairing creates a permanent device token the app uses to poll for jobs.</p>
-      <ol style="padding-left: 20px; color: var(--text-2); font-size: 14px; line-height: 2; margin-bottom: 20px;">
-        <li>Install the <strong>SMS Flare</strong> Android app on the phone.</li>
-        <li>In your dashboard, go to <strong>Settings → API Keys</strong> and generate a pairing token.</li>
-        <li>Scan the QR code with the Android app.</li>
-        <li>The device will appear as online in the dashboard within 30 seconds.</li>
-      </ol>
-    </section>
+      <section id="getting-started">
+        <h2>Getting Started</h2>
+        <p>SMS Flare turns any Android phone into an SMS gateway. Your dashboard sends jobs to a paired device, which
+          sends the actual SMS messages via the phone's SIM card. No carrier API required.</p>
 
-    <section id="sending-sms">
-      <h2>Sending SMS</h2>
-      <p>Dispatch messages programmatically via the REST API using your API key.</p>
-      <div class="code-block">
-        <div class="code-header">bash</div>
-        <pre>curl -X POST https://your-worker.workers.dev/api/sms/send \
+        <div class="getting-started-grid"
+          style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 28px;">
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px;">
+            <div style="font-family: 'DM Mono', monospace; font-size: 11px; color: var(--accent); margin-bottom: 6px;">
+              Step 1</div>
+            <div style="font-weight: 600; font-size: 14px; margin-bottom: 6px;">Deploy</div>
+            <div style="font-size: 13px; color: var(--text-2); line-height: 1.5;">Deploy the backend Worker and
+              dashboard.</div>
+          </div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px;">
+            <div style="font-family: 'DM Mono', monospace; font-size: 11px; color: var(--accent); margin-bottom: 6px;">
+              Step 2</div>
+            <div style="font-weight: 600; font-size: 14px; margin-bottom: 6px;">Pair device</div>
+            <div style="font-size: 13px; color: var(--text-2); line-height: 1.5;">Install the Android app and scan the
+              QR code.</div>
+          </div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px;">
+            <div style="font-family: 'DM Mono', monospace; font-size: 11px; color: var(--accent); margin-bottom: 6px;">
+              Step 3</div>
+            <div style="font-weight: 600; font-size: 14px; margin-bottom: 6px;">Send SMS</div>
+            <div style="font-size: 13px; color: var(--text-2); line-height: 1.5;">Start sending via API or dashboard.
+            </div>
+          </div>
+        </div>
+        <div class="note">All API requests should be sent to your Worker URL. These examples use
+          <code>https://your-worker.workers.dev</code> as a placeholder.
+        </div>
+      </section>
+
+      <section id="device-pairing">
+        <h2>Device Pairing</h2>
+        <p>Each Android device must be paired before it can send SMS. Pairing creates a permanent device token the app
+          uses to poll for jobs.</p>
+        <ol style="padding-left: 20px; color: var(--text-2); font-size: 14px; line-height: 2; margin-bottom: 20px;">
+          <li>Install the <strong>SMS Flare</strong> Android app on the phone.</li>
+          <li>In your dashboard, go to <strong>Settings → API Keys</strong> and generate a pairing token.</li>
+          <li>Scan the QR code with the Android app.</li>
+          <li>The device will appear as online in the dashboard within 30 seconds.</li>
+        </ol>
+      </section>
+
+      <section id="sending-sms">
+        <h2>Sending SMS</h2>
+        <p>Dispatch messages programmatically via the REST API using your API key.</p>
+        <div class="code-block">
+          <div class="code-header">bash</div>
+          <pre>curl -X POST https://your-worker.workers.dev/api/sms/send \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"to": "+14155552671", "message": "Hello from SMS Flare!"}'</pre>
-      </div>
-    </section>
-
-    <section id="api-reference">
-      <h2>API Reference</h2>
-      <p>All endpoints accept and return JSON. The base URL is your Worker's deployment URL.</p>
-
-      <h3 id="api-sms">SMS Endpoints</h3>
-      
-      <div class="endpoint-card">
-        <div class="endpoint-header">
-          <span class="badge" style="color: #34D399; background: rgba(52, 211, 153, 0.08); border-color: rgba(52, 211, 153, 0.2);">POST</span>
-          <code style="font-family: 'DM Mono', monospace; font-size: 13px; flex: 1;">/api/sms/send</code>
-          <span class="badge" style="color: #C084FC; background: rgba(192, 132, 252, 0.08); border-color: rgba(192, 132, 252, 0.2);">API Key</span>
         </div>
-        <div class="endpoint-body">
-          <p>Send a single SMS message. The job is immediately assigned to an active device.</p>
-          <div style="font-size: 12px; font-weight: 600; color: var(--text-3); text-transform: uppercase; margin-bottom: 6px;">Request body</div>
-          <table class="param-table">
-            <thead>
-              <tr><th>Field</th><th>Type</th><th>Description</th></tr>
-            </thead>
-            <tbody>
-              <tr><td><code>to</code></td><td>string</td><td>Recipient phone number (E.164).</td></tr>
-              <tr><td><code>message</code></td><td>string</td><td>Message body (max 160 chars).</td></tr>
-            </tbody>
-          </table>
+      </section>
+
+      <section id="api-reference">
+        <h2>API Reference</h2>
+        <p>All endpoints accept and return JSON. The base URL is your Worker's deployment URL.</p>
+
+        <h3 id="api-sms">SMS Endpoints</h3>
+
+        <div class="endpoint-card">
+          <div class="endpoint-header">
+            <span class="badge"
+              style="color: #34D399; background: rgba(52, 211, 153, 0.08); border-color: rgba(52, 211, 153, 0.2);">POST</span>
+            <code style="font-family: 'DM Mono', monospace; font-size: 13px; flex: 1;">/api/sms/send</code>
+            <span class="badge"
+              style="color: #C084FC; background: rgba(192, 132, 252, 0.08); border-color: rgba(192, 132, 252, 0.2);">API
+              Key</span>
+          </div>
+          <div class="endpoint-body">
+            <p>Send a single SMS message. The job is immediately assigned to an active device.</p>
+            <div
+              style="font-size: 12px; font-weight: 600; color: var(--text-3); text-transform: uppercase; margin-bottom: 6px;">
+              Request body</div>
+            <table class="param-table">
+              <thead>
+                <tr>
+                  <th>Field</th>
+                  <th>Type</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>to</code></td>
+                  <td>string</td>
+                  <td>Recipient phone number (E.164).</td>
+                </tr>
+                <tr>
+                  <td><code>message</code></td>
+                  <td>string</td>
+                  <td>Message body (max 160 chars).</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
 
-      <p style="margin-top: 32px; font-size: 14px; color: var(--text-3);">Full API documentation for all endpoints (Jobs, Devices, Auth) is available in your instance's internal dashboard docs.</p>
-    </section>
-  </main>
-</div>
+        <p style="margin-top: 32px; font-size: 14px; color: var(--text-3);">Full API documentation for all endpoints
+          (Jobs, Devices, Auth) is available in your instance's internal dashboard docs.</p>
+      </section>
+    </main>
+  </div>
 
-<script>
-  const navToggle = document.getElementById('nav-toggle');
-  const aside = document.querySelector('aside');
-  const tocLinks = document.querySelectorAll('.toc-link');
+  <script>
+    const navToggle = document.getElementById('nav-toggle');
+    const aside = document.querySelector('aside');
+    const tocLinks = document.querySelectorAll('.toc-link');
 
-  navToggle.addEventListener('click', () => {
-    aside.classList.toggle('open');
-    const isOpen = aside.classList.contains('open');
-    navToggle.innerHTML = isOpen 
-      ? '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>'
-      : '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>';
-    document.body.style.overflow = isOpen ? 'hidden' : '';
-  });
-
-  tocLinks.forEach(link => {
-    link.addEventListener('click', () => {
-      aside.classList.remove('open');
-      navToggle.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>';
-      document.body.style.overflow = '';
+    navToggle.addEventListener('click', () => {
+      aside.classList.toggle('open');
+      const isOpen = aside.classList.contains('open');
+      navToggle.innerHTML = isOpen
+        ? '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>'
+        : '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>';
+      document.body.style.overflow = isOpen ? 'hidden' : '';
     });
-  });
 
-  // Active link highlighting
-  const sections = document.querySelectorAll('section, h3');
-  const observerOptions = {
-    root: null,
-    rootMargin: '-20% 0px -70% 0px',
-    threshold: 0
-  };
-
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        const id = entry.target.getAttribute('id');
-        if (!id) return;
-        tocLinks.forEach(link => {
-          link.classList.toggle('active', link.getAttribute('href') === `#${id}`);
-        });
-      }
+    tocLinks.forEach(link => {
+      link.addEventListener('click', () => {
+        aside.classList.remove('open');
+        navToggle.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>';
+        document.body.style.overflow = '';
+      });
     });
-  }, observerOptions);
 
-  sections.forEach(section => observer.observe(section));
-</script>
+    // Active link highlighting
+    const sections = document.querySelectorAll('section, h3');
+    const observerOptions = {
+      root: null,
+      rootMargin: '-20% 0px -70% 0px',
+      threshold: 0
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const id = entry.target.getAttribute('id');
+          if (!id) return;
+          tocLinks.forEach(link => {
+            link.classList.toggle('active', link.getAttribute('href') === `#${id}`);
+          });
+        }
+      });
+    }, observerOptions);
+
+    sections.forEach(section => observer.observe(section));
+  </script>
 
 </body>
+
 </html>
